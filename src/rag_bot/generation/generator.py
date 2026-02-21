@@ -1,20 +1,61 @@
 """
-LLM generation using Anthropic Claude API.
+Multi-model LLM generation — supports Groq, Anthropic, Gemini, OpenAI.
 """
 
 from typing import List, Dict, Optional
-import anthropic
-
-from rag_bot.config import ANTHROPIC_API_KEY, ANTHROPIC_MODEL
+from rag_bot.config import LLM_PROVIDER, LLM_MODEL, LLM_API_KEY
 
 
-def get_client() -> anthropic.Anthropic:
-    """Get Anthropic client."""
-    return anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+def _call_llm(system: str, messages: List[Dict], max_tokens: int = 4096) -> str:
+    """Route to the correct LLM provider."""
+    provider = LLM_PROVIDER.lower()
+
+    if provider == "groq":
+        from groq import Groq
+        client = Groq(api_key=LLM_API_KEY)
+        full_messages = [{"role": "system", "content": system}] + messages
+        response = client.chat.completions.create(
+            model=LLM_MODEL,
+            messages=full_messages,
+            max_tokens=max_tokens,
+        )
+        return response.choices[0].message.content
+
+    elif provider == "anthropic":
+        import anthropic
+        client = anthropic.Anthropic(api_key=LLM_API_KEY)
+        response = client.messages.create(
+            model=LLM_MODEL,
+            max_tokens=max_tokens,
+            system=system,
+            messages=messages,
+        )
+        return response.content[0].text
+
+    elif provider == "gemini":
+        import google.generativeai as genai
+        genai.configure(api_key=LLM_API_KEY)
+        model = genai.GenerativeModel(LLM_MODEL, system_instruction=system)
+        prompt = "\n\n".join(m["content"] for m in messages)
+        response = model.generate_content(prompt)
+        return response.text
+
+    elif provider == "openai":
+        from openai import OpenAI
+        client = OpenAI(api_key=LLM_API_KEY)
+        full_messages = [{"role": "system", "content": system}] + messages
+        response = client.chat.completions.create(
+            model=LLM_MODEL,
+            messages=full_messages,
+            max_tokens=max_tokens,
+        )
+        return response.choices[0].message.content
+
+    else:
+        raise ValueError(f"Unsupported LLM provider: {provider}")
 
 
 def build_system_prompt() -> str:
-    """System prompt for the RAG assistant."""
     return (
         "You are an expert IT infrastructure assistant specializing in enterprise networking, "
         "servers, firewalls, and end-user computing. You have access to documentation from vendors "
@@ -35,28 +76,18 @@ def generate_answer(
     conversation_history: Optional[List[Dict]] = None,
     system_prompt: Optional[str] = None,
 ) -> str:
-    """
-    Generate an answer using Claude with context and optional conversation history.
-    """
-    client = get_client()
-
-    # Build context string with source info
     context_parts = []
     for i, (chunk, meta) in enumerate(zip(context_chunks, metadatas)):
         vendor = meta.get("vendor", "Unknown")
         doc = meta.get("document", "Unknown")
         page = meta.get("page", "n/a")
-        context_parts.append(
-            f"[Source {i+1}: {vendor} - {doc}, Page {page}]\n{chunk}"
-        )
+        context_parts.append(f"[Source {i+1}: {vendor} - {doc}, Page {page}]\n{chunk}")
     context_str = "\n\n".join(context_parts)
 
-    # Build messages
     messages = []
     if conversation_history:
         messages.extend(conversation_history)
 
-    # Add current question with context
     user_message = (
         f"Context from documentation:\n\n{context_str}\n\n"
         f"Question: {question}\n\n"
@@ -64,13 +95,7 @@ def generate_answer(
     )
     messages.append({"role": "user", "content": user_message})
 
-    response = client.messages.create(
-        model=ANTHROPIC_MODEL,
-        max_tokens=4096,
-        system=system_prompt or build_system_prompt(),
-        messages=messages,
-    )
-    return response.content[0].text
+    return _call_llm(system_prompt or build_system_prompt(), messages)
 
 
 def generate_comparison(
@@ -79,17 +104,12 @@ def generate_comparison(
     vendor_metadatas: Dict[str, List[Dict]],
     topic: str,
 ) -> str:
-    """Generate a structured comparison table between vendors."""
-    client = get_client()
-
     context_parts = []
     for vendor in vendors:
         chunks = vendor_contexts.get(vendor, [])
-        metas = vendor_metadatas.get(vendor, [])
         if chunks:
             vendor_context = "\n".join(chunks[:5])
             context_parts.append(f"=== {vendor} Documentation ===\n{vendor_context}")
-
     context_str = "\n\n".join(context_parts)
 
     system = (
@@ -97,7 +117,6 @@ def generate_comparison(
         "comparisons between vendors/products based on documentation. "
         "Always produce a markdown table with clear categories."
     )
-
     user_message = (
         f"Compare the following vendors/topics: {', '.join(vendors)}\n\n"
         f"Topic: {topic}\n\n"
@@ -107,14 +126,7 @@ def generate_comparison(
         "- Scalability\n- Pricing Notes\n- Key Strengths\n- Key Limitations\n\n"
         "Use a markdown table format. If information is not available in the docs, note it."
     )
-
-    response = client.messages.create(
-        model=ANTHROPIC_MODEL,
-        max_tokens=4096,
-        system=system,
-        messages=[{"role": "user", "content": user_message}],
-    )
-    return response.content[0].text
+    return _call_llm(system, [{"role": "user", "content": user_message}])
 
 
 def generate_config(
@@ -122,18 +134,12 @@ def generate_config(
     metadatas: List[Dict],
     config_request: str,
 ) -> str:
-    """Generate configuration snippets based on documentation context."""
-    client = get_client()
-
     context_str = "\n\n".join(context_chunks[:5])
-
     system = (
         "You are an expert network/systems engineer. Generate accurate, production-ready "
         "configuration snippets based on vendor documentation. Include comments explaining "
-        "each section. If the docs don't cover the exact config requested, provide the closest "
-        "match with appropriate warnings."
+        "each section."
     )
-
     user_message = (
         f"Configuration request: {config_request}\n\n"
         f"Relevant documentation:\n\n{context_str}\n\n"
@@ -143,14 +149,7 @@ def generate_config(
         "3. Any prerequisites or important notes\n"
         "4. Common variations or options"
     )
-
-    response = client.messages.create(
-        model=ANTHROPIC_MODEL,
-        max_tokens=4096,
-        system=system,
-        messages=[{"role": "user", "content": user_message}],
-    )
-    return response.content[0].text
+    return _call_llm(system, [{"role": "user", "content": user_message}])
 
 
 def generate_troubleshoot(
@@ -159,37 +158,23 @@ def generate_troubleshoot(
     problem_description: str,
     conversation_history: Optional[List[Dict]] = None,
 ) -> str:
-    """Generate troubleshooting steps based on documentation and problem description."""
-    client = get_client()
-
     context_str = "\n\n".join(context_chunks[:5])
-
     system = (
         "You are an expert IT troubleshooting assistant. Help diagnose and resolve "
         "IT infrastructure issues step by step. Be methodical:\n"
-        "1. First, clarify the problem if needed by asking specific questions\n"
+        "1. First, clarify the problem if needed\n"
         "2. Identify potential root causes\n"
         "3. Suggest diagnostic commands/steps\n"
         "4. Provide solutions based on the documentation\n"
-        "5. Suggest preventive measures\n\n"
-        "If you need more information, ask clarifying questions."
+        "5. Suggest preventive measures"
     )
-
     messages = []
     if conversation_history:
         messages.extend(conversation_history)
-
     user_message = (
         f"Problem: {problem_description}\n\n"
         f"Relevant documentation:\n\n{context_str}\n\n"
         "Please help diagnose and resolve this issue."
     )
     messages.append({"role": "user", "content": user_message})
-
-    response = client.messages.create(
-        model=ANTHROPIC_MODEL,
-        max_tokens=4096,
-        system=system,
-        messages=messages,
-    )
-    return response.content[0].text
+    return _call_llm(system, messages)

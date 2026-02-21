@@ -15,7 +15,7 @@ from pydantic import BaseModel
 
 from rag_bot.config import (
     CHROMA_DB_DIR, UPLOAD_DIR, ANTHROPIC_API_KEY, ANTHROPIC_MODEL,
-    EMBED_MODEL_NAME, COLLECTION_NAME,
+    EMBED_MODEL_NAME, COLLECTION_NAME, LLM_PROVIDER, LLM_MODEL, LLM_API_KEY,
 )
 from rag_bot.retrieval.retriever import (
     hybrid_retrieve, retrieve_by_vendor, get_collection,
@@ -156,7 +156,7 @@ def health_check():
         status="healthy",
         version="2.0.0",
         chromadb_count=col.count(),
-        model=ANTHROPIC_MODEL,
+        model=f"{LLM_PROVIDER}/{LLM_MODEL}",
         embedding_model=EMBED_MODEL_NAME,
     )
 
@@ -506,7 +506,8 @@ def get_config():
     return {
         "model": ANTHROPIC_MODEL,
         "embedding_model": EMBED_MODEL_NAME,
-        "has_api_key": bool(ANTHROPIC_API_KEY and ANTHROPIC_API_KEY != "your-key-here"),
+        "provider": LLM_PROVIDER,
+        "has_api_key": bool(LLM_API_KEY and LLM_API_KEY not in ("", "your-api-key-here")),
     }
 
 
