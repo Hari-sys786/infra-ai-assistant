@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+.env
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+data/chroma_db/
+data/vendor/
+*.rar
+.gradio/
+node_modules/
+frontend/rag-bot-ui/dist/
+frontend/rag-bot-ui/.angular/
+.DS_Store

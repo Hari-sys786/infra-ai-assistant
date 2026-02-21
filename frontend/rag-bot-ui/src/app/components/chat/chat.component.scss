@@ -1,0 +1,254 @@
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 64px);
+  position: relative;
+  background: #f5f5f5;
+}
+
+.agent-selector {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: white;
+  border-bottom: 1px solid #e0e0e0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+
+  .toggle-label {
+    margin-left: 4px;
+    font-size: 13px;
+  }
+
+  mat-button-toggle-group {
+    border-radius: 8px;
+  }
+}
+
+.agent-options {
+  display: flex;
+  gap: 12px;
+  padding: 8px 16px;
+  background: #fafafa;
+  border-bottom: 1px solid #e0e0e0;
+
+  .option-field {
+    flex: 1;
+    font-size: 14px;
+  }
+
+  ::ng-deep .mat-mdc-form-field-subscript-wrapper {
+    display: none;
+  }
+}
+
+.messages-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  scroll-behavior: smooth;
+}
+
+.message-row {
+  display: flex;
+  margin-bottom: 16px;
+  align-items: flex-start;
+  gap: 8px;
+
+  &.user-row {
+    flex-direction: row-reverse;
+  }
+}
+
+.message-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  .user-row & {
+    background: #3f51b5;
+    color: white;
+  }
+
+  .assistant-row & {
+    background: #e8eaf6;
+    color: #3f51b5;
+  }
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.message-bubble {
+  max-width: 70%;
+  padding: 12px 16px;
+  border-radius: 16px;
+  line-height: 1.5;
+  word-wrap: break-word;
+
+  &.user-bubble {
+    background: #3f51b5;
+    color: white;
+    border-bottom-right-radius: 4px;
+  }
+
+  &.assistant-bubble {
+    background: white;
+    color: #333;
+    border-bottom-left-radius: 4px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.message-content {
+  font-size: 14px;
+  white-space: pre-wrap;
+}
+
+.message-meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-top: 4px;
+
+  .message-time {
+    font-size: 11px;
+    opacity: 0.6;
+  }
+}
+
+.source-btn {
+  width: 28px !important;
+  height: 28px !important;
+  line-height: 28px !important;
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+
+  .source-count {
+    font-size: 10px;
+    margin-left: 2px;
+  }
+}
+
+// Loading animation
+.loading-bubble {
+  padding: 16px 24px;
+}
+
+.typing-indicator {
+  display: flex;
+  gap: 4px;
+
+  span {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #999;
+    animation: typing 1.4s infinite ease-in-out;
+
+    &:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+    &:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+  }
+}
+
+@keyframes typing {
+  0%,
+  80%,
+  100% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+// Input area
+.input-area {
+  display: flex;
+  align-items: flex-end;
+  padding: 12px 16px;
+  background: white;
+  border-top: 1px solid #e0e0e0;
+  gap: 8px;
+
+  .input-field {
+    flex: 1;
+
+    ::ng-deep .mat-mdc-form-field-subscript-wrapper {
+      display: none;
+    }
+  }
+
+  .send-btn {
+    margin-bottom: 4px;
+    width: 48px;
+    height: 48px;
+  }
+}
+
+// Sources panel
+.sources-panel {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 320px;
+  background: white;
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+
+  .sources-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 16px;
+    border-bottom: 1px solid #e0e0e0;
+
+    h3 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 500;
+    }
+  }
+}
+
+// Responsive
+@media (max-width: 768px) {
+  .message-bubble {
+    max-width: 85%;
+  }
+
+  .sources-panel {
+    width: 100%;
+  }
+
+  .agent-options {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .toggle-label {
+    display: none;
+  }
+}

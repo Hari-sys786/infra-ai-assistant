@@ -1,0 +1,129 @@
+<div class="dashboard-container">
+  <h2>Dashboard</h2>
+
+  <div class="error-banner" *ngIf="error">
+    <mat-icon>error_outline</mat-icon>
+    <span>{{ error }}</span>
+    <button mat-button (click)="loadData()">Retry</button>
+  </div>
+
+  <div *ngIf="isLoading && !error" class="loading">
+    <mat-spinner diameter="40"></mat-spinner>
+    <p>Loading dashboard...</p>
+  </div>
+
+  <div class="dashboard-grid" *ngIf="!isLoading && !error">
+    <!-- Stats Cards -->
+    <mat-card class="stat-card">
+      <mat-card-content>
+        <div class="stat-icon documents">
+          <mat-icon>description</mat-icon>
+        </div>
+        <div class="stat-info">
+          <div class="stat-value">{{ analytics?.total_documents || 0 }}</div>
+          <div class="stat-label">Indexed Chunks</div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat-card">
+      <mat-card-content>
+        <div class="stat-icon queries">
+          <mat-icon>search</mat-icon>
+        </div>
+        <div class="stat-info">
+          <div class="stat-value">{{ analytics?.total_queries || 0 }}</div>
+          <div class="stat-label">Total Queries</div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat-card">
+      <mat-card-content>
+        <div class="stat-icon sessions">
+          <mat-icon>group</mat-icon>
+        </div>
+        <div class="stat-info">
+          <div class="stat-value">{{ analytics?.active_sessions || 0 }}</div>
+          <div class="stat-label">Active Sessions</div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat-card">
+      <mat-card-content>
+        <div class="stat-icon time">
+          <mat-icon>timer</mat-icon>
+        </div>
+        <div class="stat-info">
+          <div class="stat-value">{{ analytics?.avg_response_time || 0 }}s</div>
+          <div class="stat-label">Avg Response Time</div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- System Health -->
+    <mat-card class="full-card" *ngIf="health">
+      <mat-card-header>
+        <mat-card-title>System Health</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="health-grid">
+          <div class="health-item">
+            <span class="health-label">Status</span>
+            <span class="health-value status-ok">{{ health.status }}</span>
+          </div>
+          <div class="health-item">
+            <span class="health-label">Version</span>
+            <span class="health-value">{{ health.version }}</span>
+          </div>
+          <div class="health-item">
+            <span class="health-label">LLM Model</span>
+            <span class="health-value">{{ health.model }}</span>
+          </div>
+          <div class="health-item">
+            <span class="health-label">Embedding Model</span>
+            <span class="health-value">{{ health.embedding_model }}</span>
+          </div>
+          <div class="health-item">
+            <span class="health-label">ChromaDB Chunks</span>
+            <span class="health-value">{{ health.chromadb_count }}</span>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Popular Topics -->
+    <mat-card class="half-card" *ngIf="analytics && analytics.popular_topics.length > 0">
+      <mat-card-header>
+        <mat-card-title>Popular Topics</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="topic-list">
+          <div class="topic-item" *ngFor="let topic of analytics.popular_topics">
+            <span class="topic-name">{{ topic.topic }}</span>
+            <span class="topic-count">{{ topic.count }}</span>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Recent Queries -->
+    <mat-card class="half-card" *ngIf="analytics && analytics.recent_queries.length > 0">
+      <mat-card-header>
+        <mat-card-title>Recent Queries</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="query-list">
+          <div class="query-item" *ngFor="let q of analytics.recent_queries">
+            <div class="query-text">{{ q.question }}</div>
+            <div class="query-meta">
+              <span>{{ formatTime(q.timestamp) }}</span>
+              <span>{{ q.response_time.toFixed(2) }}s</span>
+            </div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

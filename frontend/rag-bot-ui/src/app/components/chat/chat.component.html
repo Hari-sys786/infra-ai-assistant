@@ -1,0 +1,133 @@
+<div class="chat-container">
+  <!-- Agent Mode Selector -->
+  <div class="agent-selector">
+    <mat-button-toggle-group [(ngModel)]="agentMode" appearance="standard">
+      <mat-button-toggle value="query">
+        <mat-icon>chat</mat-icon>
+        <span class="toggle-label">Query</span>
+      </mat-button-toggle>
+      <mat-button-toggle value="compare">
+        <mat-icon>compare_arrows</mat-icon>
+        <span class="toggle-label">Compare</span>
+      </mat-button-toggle>
+      <mat-button-toggle value="config">
+        <mat-icon>settings_ethernet</mat-icon>
+        <span class="toggle-label">Config Gen</span>
+      </mat-button-toggle>
+      <mat-button-toggle value="troubleshoot">
+        <mat-icon>build</mat-icon>
+        <span class="toggle-label">Troubleshoot</span>
+      </mat-button-toggle>
+    </mat-button-toggle-group>
+
+    <button mat-icon-button (click)="clearChat()" matTooltip="Clear chat">
+      <mat-icon>delete_sweep</mat-icon>
+    </button>
+  </div>
+
+  <!-- Compare/Config options -->
+  <div class="agent-options" *ngIf="agentMode === 'compare'">
+    <mat-form-field appearance="outline" class="option-field">
+      <mat-label>Vendors (comma-separated)</mat-label>
+      <input matInput [(ngModel)]="compareVendors" placeholder="Cisco, Juniper, Fortinet" />
+    </mat-form-field>
+    <mat-form-field appearance="outline" class="option-field">
+      <mat-label>Topic</mat-label>
+      <input matInput [(ngModel)]="compareTopic" placeholder="firewall features" />
+    </mat-form-field>
+  </div>
+
+  <div class="agent-options" *ngIf="agentMode === 'config'">
+    <mat-form-field appearance="outline" class="option-field">
+      <mat-label>Vendor (optional)</mat-label>
+      <input matInput [(ngModel)]="configVendor" placeholder="Juniper" />
+    </mat-form-field>
+  </div>
+
+  <!-- Messages -->
+  <div class="messages-container" #messageContainer>
+    <div
+      *ngFor="let msg of messages"
+      class="message-row"
+      [ngClass]="{ 'user-row': msg.role === 'user', 'assistant-row': msg.role === 'assistant' }"
+    >
+      <div class="message-avatar">
+        <mat-icon *ngIf="msg.role === 'user'">person</mat-icon>
+        <mat-icon *ngIf="msg.role === 'assistant'">smart_toy</mat-icon>
+      </div>
+      <div class="message-bubble" [ngClass]="{ 'user-bubble': msg.role === 'user', 'assistant-bubble': msg.role === 'assistant' }">
+        <div class="message-content" [innerHTML]="msg.content"></div>
+        <div class="message-meta">
+          <span class="message-time" *ngIf="msg.timestamp">
+            {{ msg.timestamp | date : 'HH:mm' }}
+          </span>
+          <button
+            mat-icon-button
+            class="source-btn"
+            *ngIf="msg.sources && msg.sources.length > 0"
+            (click)="showSourcePanel(msg.sources!)"
+            matTooltip="View sources"
+          >
+            <mat-icon>source</mat-icon>
+            <span class="source-count">{{ msg.sources!.length }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading indicator -->
+    <div class="message-row assistant-row" *ngIf="isLoading">
+      <div class="message-avatar">
+        <mat-icon>smart_toy</mat-icon>
+      </div>
+      <div class="message-bubble assistant-bubble loading-bubble">
+        <div class="typing-indicator">
+          <span></span><span></span><span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Input Area -->
+  <div class="input-area">
+    <mat-form-field appearance="outline" class="input-field">
+      <textarea
+        matInput
+        #messageInput
+        [(ngModel)]="inputText"
+        (keydown)="onKeydown($event)"
+        placeholder="Ask about IT infrastructure..."
+        rows="1"
+        cdkTextareaAutosize
+        cdkAutosizeMinRows="1"
+        cdkAutosizeMaxRows="4"
+      ></textarea>
+    </mat-form-field>
+    <button
+      mat-fab
+      color="primary"
+      (click)="sendMessage()"
+      [disabled]="isLoading || !inputText.trim()"
+      class="send-btn"
+    >
+      <mat-icon>send</mat-icon>
+    </button>
+  </div>
+
+  <!-- Sources Side Panel -->
+  <div class="sources-panel" *ngIf="showSources" [@slideIn]>
+    <div class="sources-header">
+      <h3>Sources</h3>
+      <button mat-icon-button (click)="closeSources()">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+    <mat-list>
+      <mat-list-item *ngFor="let source of selectedSources; let i = index">
+        <mat-icon matListItemIcon>description</mat-icon>
+        <div matListItemTitle>{{ source.vendor }} — {{ source.document }}</div>
+        <div matListItemLine>Page: {{ source.page || 'n/a' }}<span *ngIf="source.chunk !== null && source.chunk !== undefined"> | Chunk: {{ source.chunk }}</span></div>
+      </mat-list-item>
+    </mat-list>
+  </div>
+</div>
