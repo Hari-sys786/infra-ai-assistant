@@ -4,8 +4,8 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-# Load .env from project root
-load_dotenv(Path(__file__).parent.parent.parent.parent / ".env")
+# Load .env from project root (src/rag_bot/config.py → src → project root)
+load_dotenv(Path(__file__).parent.parent.parent / ".env")
 
 # Root data directory (relative to project root)
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
