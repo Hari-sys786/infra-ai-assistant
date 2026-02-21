@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef, AfterViewChecked } from '@angular/core';
 import { ApiService } from '../../services/api.service';
 import { MessageItem, SourceInfo } from '../../models/api.models';
 
@@ -7,7 +7,7 @@ import { MessageItem, SourceInfo } from '../../models/api.models';
   templateUrl: './chat.component.html',
   styleUrls: ['./chat.component.scss'],
 })
-export class ChatComponent implements OnInit {
+export class ChatComponent implements OnInit, AfterViewChecked {
   @ViewChild('messageContainer') messageContainer!: ElementRef;
   @ViewChild('messageInput') messageInput!: ElementRef;
 
@@ -18,6 +18,7 @@ export class ChatComponent implements OnInit {
   selectedSources: SourceInfo[] = [];
   showSources = false;
   agentMode: 'query' | 'compare' | 'config' | 'troubleshoot' = 'query';
+  private shouldScroll = false;
 
   // Compare fields
   compareVendors = '';
@@ -27,13 +28,20 @@ export class ChatComponent implements OnInit {
   configRequest = '';
   configVendor = '';
 
+  modes = [
+    { value: 'query' as const, label: 'Q&A', icon: '💬' },
+    { value: 'compare' as const, label: 'Compare', icon: '⚖️' },
+    { value: 'config' as const, label: 'Config Gen', icon: '⚙️' },
+    { value: 'troubleshoot' as const, label: 'Troubleshoot', icon: '🔧' },
+  ];
+
   constructor(private api: ApiService) {}
 
   ngOnInit(): void {
     this.messages.push({
       role: 'assistant',
       content:
-        'Welcome to the IT Infrastructure Assistant! I can help you with:\n\n' +
+        'Welcome to the **IT Infrastructure Assistant**! I can help you with:\n\n' +
         '- **Questions** about networking, servers, firewalls, and more\n' +
         '- **Comparing** vendors (e.g., Cisco vs Juniper)\n' +
         '- **Generating** configurations (e.g., VLAN setup for FortiGate)\n' +
@@ -43,11 +51,21 @@ export class ChatComponent implements OnInit {
     });
   }
 
+  ngAfterViewChecked(): void {
+    if (this.shouldScroll) {
+      this.scrollToBottom();
+      this.shouldScroll = false;
+    }
+  }
+
+  setMode(mode: 'query' | 'compare' | 'config' | 'troubleshoot'): void {
+    this.agentMode = mode;
+  }
+
   sendMessage(): void {
     const text = this.inputText.trim();
     if (!text || this.isLoading) return;
 
-    // Add user message
     this.messages.push({
       role: 'user',
       content: text,
@@ -55,7 +73,12 @@ export class ChatComponent implements OnInit {
     });
     this.inputText = '';
     this.isLoading = true;
-    this.scrollToBottom();
+    this.shouldScroll = true;
+
+    // Reset textarea height
+    if (this.messageInput) {
+      this.messageInput.nativeElement.style.height = 'auto';
+    }
 
     switch (this.agentMode) {
       case 'compare':
@@ -95,7 +118,7 @@ export class ChatComponent implements OnInit {
             timestamp: new Date(),
           });
           this.isLoading = false;
-          this.scrollToBottom();
+          this.shouldScroll = true;
         },
         error: (err) => {
           this.messages.push({
@@ -104,13 +127,12 @@ export class ChatComponent implements OnInit {
             timestamp: new Date(),
           });
           this.isLoading = false;
-          this.scrollToBottom();
+          this.shouldScroll = true;
         },
       });
   }
 
   private sendCompare(text: string): void {
-    // Parse vendors from text or use fields
     const vendors = this.compareVendors
       ? this.compareVendors.split(',').map((v) => v.trim())
       : this.extractVendors(text);
@@ -125,7 +147,7 @@ export class ChatComponent implements OnInit {
           timestamp: new Date(),
         });
         this.isLoading = false;
-        this.scrollToBottom();
+        this.shouldScroll = true;
       },
       error: (err) => {
         this.messages.push({
@@ -134,7 +156,7 @@ export class ChatComponent implements OnInit {
           timestamp: new Date(),
         });
         this.isLoading = false;
-        this.scrollToBottom();
+        this.shouldScroll = true;
       },
     });
   }
@@ -155,7 +177,7 @@ export class ChatComponent implements OnInit {
             timestamp: new Date(),
           });
           this.isLoading = false;
-          this.scrollToBottom();
+          this.shouldScroll = true;
         },
         error: (err) => {
           this.messages.push({
@@ -164,7 +186,7 @@ export class ChatComponent implements OnInit {
             timestamp: new Date(),
           });
           this.isLoading = false;
-          this.scrollToBottom();
+          this.shouldScroll = true;
         },
       });
   }
@@ -192,7 +214,7 @@ export class ChatComponent implements OnInit {
             timestamp: new Date(),
           });
           this.isLoading = false;
-          this.scrollToBottom();
+          this.shouldScroll = true;
         },
         error: (err) => {
           this.messages.push({
@@ -201,7 +223,7 @@ export class ChatComponent implements OnInit {
             timestamp: new Date(),
           });
           this.isLoading = false;
-          this.scrollToBottom();
+          this.shouldScroll = true;
         },
       });
   }
@@ -234,12 +256,58 @@ export class ChatComponent implements OnInit {
     }
   }
 
+  onTextareaInput(event: Event): void {
+    const textarea = event.target as HTMLTextAreaElement;
+    textarea.style.height = 'auto';
+    textarea.style.height = Math.min(textarea.scrollHeight, 160) + 'px';
+  }
+
+  formatContent(content: string): string {
+    // Simple markdown-like rendering
+    let html = this.escapeHtml(content);
+
+    // Code blocks (```)
+    html = html.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code class="lang-$1">$2</code></pre>');
+
+    // Inline code
+    html = html.replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>');
+
+    // Bold
+    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+
+    // Italic
+    html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+    // Unordered lists
+    html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
+    html = html.replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>');
+
+    // Line breaks
+    html = html.replace(/\n/g, '<br>');
+
+    // Clean up <br> inside <ul>
+    html = html.replace(/<ul><br>/g, '<ul>');
+    html = html.replace(/<br><\/ul>/g, '</ul>');
+    html = html.replace(/<\/li><br><li>/g, '</li><li>');
+
+    return html;
+  }
+
+  private escapeHtml(text: string): string {
+    const map: Record<string, string> = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;',
+    };
+    return text.replace(/[&<>"']/g, (m) => map[m]);
+  }
+
   private scrollToBottom(): void {
-    setTimeout(() => {
-      if (this.messageContainer) {
-        const el = this.messageContainer.nativeElement;
-        el.scrollTop = el.scrollHeight;
-      }
-    }, 100);
+    if (this.messageContainer) {
+      const el = this.messageContainer.nativeElement;
+      el.scrollTop = el.scrollHeight;
+    }
   }
 }

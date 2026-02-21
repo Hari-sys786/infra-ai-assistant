@@ -1,129 +1,172 @@
-<div class="dashboard-container">
-  <h2>Dashboard</h2>
-
-  <div class="error-banner" *ngIf="error">
-    <mat-icon>error_outline</mat-icon>
-    <span>{{ error }}</span>
-    <button mat-button (click)="loadData()">Retry</button>
+<div class="dashboard-page">
+  <div class="page-header">
+    <h1>📊 Dashboard</h1>
+    <p class="subtitle">System overview and analytics</p>
   </div>
 
-  <div *ngIf="isLoading && !error" class="loading">
-    <mat-spinner diameter="40"></mat-spinner>
+  <!-- Error Banner -->
+  <div class="error-banner" *ngIf="error">
+    <div class="error-content">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+      <span>{{ error }}</span>
+    </div>
+    <button class="retry-btn" (click)="loadData()">Retry</button>
+  </div>
+
+  <!-- Loading -->
+  <div class="loading-state" *ngIf="isLoading && !error">
+    <div class="spinner"></div>
     <p>Loading dashboard...</p>
   </div>
 
-  <div class="dashboard-grid" *ngIf="!isLoading && !error">
+  <div class="dashboard-content" *ngIf="!isLoading && !error">
     <!-- Stats Cards -->
-    <mat-card class="stat-card">
-      <mat-card-content>
-        <div class="stat-icon documents">
-          <mat-icon>description</mat-icon>
+    <div class="stats-grid">
+      <div class="stat-card glass-card">
+        <div class="stat-icon docs-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
         </div>
         <div class="stat-info">
           <div class="stat-value">{{ analytics?.total_documents || 0 }}</div>
-          <div class="stat-label">Indexed Chunks</div>
+          <div class="stat-label">Total Documents</div>
         </div>
-      </mat-card-content>
-    </mat-card>
+      </div>
 
-    <mat-card class="stat-card">
-      <mat-card-content>
-        <div class="stat-icon queries">
-          <mat-icon>search</mat-icon>
+      <div class="stat-card glass-card">
+        <div class="stat-icon queries-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
         </div>
         <div class="stat-info">
           <div class="stat-value">{{ analytics?.total_queries || 0 }}</div>
           <div class="stat-label">Total Queries</div>
         </div>
-      </mat-card-content>
-    </mat-card>
+      </div>
 
-    <mat-card class="stat-card">
-      <mat-card-content>
-        <div class="stat-icon sessions">
-          <mat-icon>group</mat-icon>
+      <div class="stat-card glass-card">
+        <div class="stat-icon sessions-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 00-3-3.87"/>
+            <path d="M16 3.13a4 4 0 010 7.75"/>
+          </svg>
         </div>
         <div class="stat-info">
           <div class="stat-value">{{ analytics?.active_sessions || 0 }}</div>
           <div class="stat-label">Active Sessions</div>
         </div>
-      </mat-card-content>
-    </mat-card>
+      </div>
 
-    <mat-card class="stat-card">
-      <mat-card-content>
-        <div class="stat-icon time">
-          <mat-icon>timer</mat-icon>
+      <div class="stat-card glass-card">
+        <div class="stat-icon time-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
+          </svg>
         </div>
         <div class="stat-info">
           <div class="stat-value">{{ analytics?.avg_response_time || 0 }}s</div>
           <div class="stat-label">Avg Response Time</div>
         </div>
-      </mat-card-content>
-    </mat-card>
+      </div>
+    </div>
 
     <!-- System Health -->
-    <mat-card class="full-card" *ngIf="health">
-      <mat-card-header>
-        <mat-card-title>System Health</mat-card-title>
-      </mat-card-header>
-      <mat-card-content>
-        <div class="health-grid">
-          <div class="health-item">
-            <span class="health-label">Status</span>
-            <span class="health-value status-ok">{{ health.status }}</span>
-          </div>
-          <div class="health-item">
-            <span class="health-label">Version</span>
-            <span class="health-value">{{ health.version }}</span>
-          </div>
-          <div class="health-item">
-            <span class="health-label">LLM Model</span>
-            <span class="health-value">{{ health.model }}</span>
-          </div>
-          <div class="health-item">
-            <span class="health-label">Embedding Model</span>
-            <span class="health-value">{{ health.embedding_model }}</span>
-          </div>
-          <div class="health-item">
-            <span class="health-label">ChromaDB Chunks</span>
-            <span class="health-value">{{ health.chromadb_count }}</span>
-          </div>
+    <div class="glass-card section-card" *ngIf="health">
+      <div class="section-header">
+        <h2>🖥️ System Health</h2>
+      </div>
+      <div class="health-grid">
+        <div class="health-item">
+          <span class="health-label">Status</span>
+          <span class="health-value status-ok">{{ health.status }}</span>
         </div>
-      </mat-card-content>
-    </mat-card>
+        <div class="health-item">
+          <span class="health-label">Version</span>
+          <span class="health-value">{{ health.version }}</span>
+        </div>
+        <div class="health-item">
+          <span class="health-label">LLM Model</span>
+          <span class="health-value">{{ health.model }}</span>
+        </div>
+        <div class="health-item">
+          <span class="health-label">Embedding Model</span>
+          <span class="health-value">{{ health.embedding_model }}</span>
+        </div>
+        <div class="health-item">
+          <span class="health-label">ChromaDB Chunks</span>
+          <span class="health-value">{{ health.chromadb_count }}</span>
+        </div>
+      </div>
+    </div>
 
-    <!-- Popular Topics -->
-    <mat-card class="half-card" *ngIf="analytics && analytics.popular_topics.length > 0">
-      <mat-card-header>
-        <mat-card-title>Popular Topics</mat-card-title>
-      </mat-card-header>
-      <mat-card-content>
+    <div class="two-col">
+      <!-- Popular Topics -->
+      <div class="glass-card section-card" *ngIf="analytics && analytics.popular_topics && analytics.popular_topics.length > 0">
+        <div class="section-header">
+          <h2>🔥 Popular Topics</h2>
+        </div>
         <div class="topic-list">
           <div class="topic-item" *ngFor="let topic of analytics.popular_topics">
             <span class="topic-name">{{ topic.topic }}</span>
             <span class="topic-count">{{ topic.count }}</span>
           </div>
         </div>
-      </mat-card-content>
-    </mat-card>
+      </div>
 
-    <!-- Recent Queries -->
-    <mat-card class="half-card" *ngIf="analytics && analytics.recent_queries.length > 0">
-      <mat-card-header>
-        <mat-card-title>Recent Queries</mat-card-title>
-      </mat-card-header>
-      <mat-card-content>
+      <!-- Recent Queries -->
+      <div class="glass-card section-card" *ngIf="analytics && analytics.recent_queries && analytics.recent_queries.length > 0">
+        <div class="section-header">
+          <h2>🕐 Recent Queries</h2>
+        </div>
         <div class="query-list">
           <div class="query-item" *ngFor="let q of analytics.recent_queries">
             <div class="query-text">{{ q.question }}</div>
             <div class="query-meta">
               <span>{{ formatTime(q.timestamp) }}</span>
-              <span>{{ q.response_time.toFixed(2) }}s</span>
+              <span class="response-time">{{ q.response_time.toFixed(2) }}s</span>
             </div>
           </div>
         </div>
-      </mat-card-content>
-    </mat-card>
+      </div>
+    </div>
+
+    <!-- Indexed Documents Table -->
+    <div class="glass-card section-card" *ngIf="documents.length > 0">
+      <div class="section-header">
+        <h2>📚 Indexed Documents</h2>
+        <span class="chunk-badge">{{ totalChunks }} total chunks</span>
+      </div>
+      <div class="table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Vendor</th>
+              <th>Document</th>
+              <th>Chunks</th>
+              <th>Pages</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let doc of documents">
+              <td><span class="vendor-badge">{{ doc.vendor }}</span></td>
+              <td>{{ doc.document }}</td>
+              <td>{{ doc.chunk_count }}</td>
+              <td>{{ doc.page_count }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </div>

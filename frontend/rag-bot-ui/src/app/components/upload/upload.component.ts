@@ -12,9 +12,9 @@ export class UploadComponent implements OnInit {
   totalChunks = 0;
   isUploading = false;
   uploadProgress = '';
+  uploadSuccess = false;
   vendor = 'Uploaded';
   isDragging = false;
-  displayedColumns = ['vendor', 'document', 'chunk_count', 'page_count', 'actions'];
 
   constructor(private api: ApiService) {}
 
@@ -67,20 +67,24 @@ export class UploadComponent implements OnInit {
     const ext = file.name.split('.').pop()?.toLowerCase();
     if (ext !== 'pdf' && ext !== 'html' && ext !== 'htm') {
       this.uploadProgress = '❌ Only PDF and HTML files are supported.';
+      this.uploadSuccess = false;
       return;
     }
 
     this.isUploading = true;
     this.uploadProgress = `Uploading ${file.name}...`;
+    this.uploadSuccess = false;
 
     this.api.uploadDocument(file, this.vendor).subscribe({
       next: (res) => {
         this.uploadProgress = `✅ ${res.filename} uploaded — ${res.chunks_added} chunks indexed.`;
+        this.uploadSuccess = true;
         this.isUploading = false;
         this.loadDocuments();
       },
       error: (err) => {
         this.uploadProgress = '❌ Upload failed: ' + (err.error?.detail || err.message);
+        this.uploadSuccess = false;
         this.isUploading = false;
       },
     });

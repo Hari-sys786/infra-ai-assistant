@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { ApiService } from '../../services/api.service';
-import { AnalyticsResponse, HealthResponse } from '../../models/api.models';
+import { AnalyticsResponse, HealthResponse, DocumentInfo } from '../../models/api.models';
 
 @Component({
   selector: 'app-dashboard',
@@ -10,6 +10,8 @@ import { AnalyticsResponse, HealthResponse } from '../../models/api.models';
 export class DashboardComponent implements OnInit {
   analytics: AnalyticsResponse | null = null;
   health: HealthResponse | null = null;
+  documents: DocumentInfo[] = [];
+  totalChunks = 0;
   isLoading = true;
   error = '';
 
@@ -27,7 +29,7 @@ export class DashboardComponent implements OnInit {
       next: (res) => {
         this.health = res;
       },
-      error: (err) => {
+      error: () => {
         this.error = 'Backend not reachable. Is the server running on port 8000?';
         this.isLoading = false;
       },
@@ -38,9 +40,17 @@ export class DashboardComponent implements OnInit {
         this.analytics = res;
         this.isLoading = false;
       },
-      error: (err) => {
+      error: () => {
         this.isLoading = false;
       },
+    });
+
+    this.api.getDocuments().subscribe({
+      next: (res) => {
+        this.documents = res.documents;
+        this.totalChunks = res.total_chunks;
+      },
+      error: () => {},
     });
   }
 
