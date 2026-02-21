@@ -15,7 +15,7 @@ from pydantic import BaseModel
 
 from rag_bot.config import (
     CHROMA_DB_DIR, UPLOAD_DIR, ANTHROPIC_API_KEY, ANTHROPIC_MODEL,
-    EMBED_MODEL_NAME, COLLECTION_NAME, PROJECT_ROOT
+    EMBED_MODEL_NAME, COLLECTION_NAME,
 )
 from rag_bot.retrieval.retriever import (
     hybrid_retrieve, retrieve_by_vendor, get_collection,
@@ -513,7 +513,7 @@ def get_config():
 # ─── Serve Angular static files (production) ────────────────────────────────
 # Mount after all API routes
 
-_frontend_dist = PROJECT_ROOT / "frontend" / "rag-bot-ui" / "dist" / "rag-bot-ui"
+_frontend_dist = Path(__file__).parent.parent.parent / "frontend" / "rag-bot-ui" / "dist" / "rag-bot-ui"
 if _frontend_dist.exists():
     app.mount("/", StaticFiles(directory=str(_frontend_dist), html=True), name="frontend")
 
