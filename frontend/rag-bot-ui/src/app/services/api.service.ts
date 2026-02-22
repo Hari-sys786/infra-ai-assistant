@@ -4,8 +4,6 @@ import { Observable } from 'rxjs';
 import {
   QueryRequest,
   QueryResponse,
-  ConfigGenRequest,
-  ConfigGenResponse,
   DocumentListResponse,
   AnalyticsResponse,
   HealthResponse,
@@ -51,11 +49,6 @@ export class ApiService {
     return this.http.delete(
       `${this.baseUrl}/documents/${encodeURIComponent(vendor)}/${encodeURIComponent(documentName)}`
     );
-  }
-
-  // Config gen
-  generateConfig(request: ConfigGenRequest): Observable<ConfigGenResponse> {
-    return this.http.post<ConfigGenResponse>(`${this.baseUrl}/config-gen`, request);
   }
 
   // Analytics

@@ -25,17 +25,6 @@ export interface QueryResponse {
   session_id: string;
 }
 
-export interface ConfigGenRequest {
-  request: string;
-  vendor?: string;
-  top_k?: number;
-}
-
-export interface ConfigGenResponse {
-  config: string;
-  sources: SourceInfo[];
-}
-
 export interface DocumentInfo {
   vendor: string;
   document: string;

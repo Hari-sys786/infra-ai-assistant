@@ -17,17 +17,7 @@ export class ChatComponent implements OnInit, AfterViewChecked {
   sessionId: string | undefined;
   selectedSources: SourceInfo[] = [];
   showSources = false;
-  agentMode: 'query' | 'config' = 'query';
   private shouldScroll = false;
-
-  // Config gen fields
-  configRequest = '';
-  configVendor = '';
-
-  modes = [
-    { value: 'query' as const, label: 'Q&A', icon: '💬' },
-    { value: 'config' as const, label: 'Config Gen', icon: '⚙️' },
-  ];
 
   constructor(private api: ApiService) {}
 
@@ -35,10 +25,11 @@ export class ChatComponent implements OnInit, AfterViewChecked {
     this.messages.push({
       role: 'assistant',
       content:
-        'Welcome to the **IT Infrastructure Assistant**! I can help you with:\n\n' +
-        '- **Questions** about networking, servers, firewalls, and more\n' +
-        '- **Generating** configurations (e.g., VLAN setup for FortiGate)\n\n' +
-        'How can I help you today?',
+        'Hello! I\'m your **IT Infrastructure Assistant**. I can help you with questions about networking, servers, firewalls, storage, and more — all powered by your indexed documentation.\n\n' +
+        'Try asking something like:\n' +
+        '- *What is FortiGate?*\n' +
+        '- *How do I configure VLANs?*\n' +
+        '- *Dell PowerEdge specifications*',
       timestamp: new Date(),
     });
   }
@@ -48,10 +39,6 @@ export class ChatComponent implements OnInit, AfterViewChecked {
       this.scrollToBottom();
       this.shouldScroll = false;
     }
-  }
-
-  setMode(mode: 'query' | 'config'): void {
-    this.agentMode = mode;
   }
 
   sendMessage(): void {
@@ -67,21 +54,10 @@ export class ChatComponent implements OnInit, AfterViewChecked {
     this.isLoading = true;
     this.shouldScroll = true;
 
-    // Reset textarea height
     if (this.messageInput) {
       this.messageInput.nativeElement.style.height = 'auto';
     }
 
-    switch (this.agentMode) {
-      case 'config':
-        this.sendConfigGen(text);
-        break;
-      default:
-        this.sendQuery(text);
-    }
-  }
-
-  private sendQuery(text: string): void {
     const history = this.messages
       .filter((m) => m.role === 'user' || m.role === 'assistant')
       .slice(-10)
@@ -109,37 +85,7 @@ export class ChatComponent implements OnInit, AfterViewChecked {
         error: (err) => {
           this.messages.push({
             role: 'assistant',
-            content: '❌ Error: ' + (err.error?.detail || err.message || 'Unknown error'),
-            timestamp: new Date(),
-          });
-          this.isLoading = false;
-          this.shouldScroll = true;
-        },
-      });
-  }
-
-  private sendConfigGen(text: string): void {
-    this.api
-      .generateConfig({
-        request: text,
-        vendor: this.configVendor || undefined,
-        top_k: 5,
-      })
-      .subscribe({
-        next: (res) => {
-          this.messages.push({
-            role: 'assistant',
-            content: res.config,
-            sources: res.sources,
-            timestamp: new Date(),
-          });
-          this.isLoading = false;
-          this.shouldScroll = true;
-        },
-        error: (err) => {
-          this.messages.push({
-            role: 'assistant',
-            content: '❌ Error: ' + (err.error?.detail || err.message),
+            content: '❌ ' + (err.error?.detail || err.message || 'Something went wrong. Please try again.'),
             timestamp: new Date(),
           });
           this.isLoading = false;
@@ -177,11 +123,14 @@ export class ChatComponent implements OnInit, AfterViewChecked {
   }
 
   formatContent(content: string): string {
-    // Simple markdown-like rendering
     let html = this.escapeHtml(content);
 
-    // Code blocks (```)
-    html = html.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code class="lang-$1">$2</code></pre>');
+    // Headers (### → h3, ## → h2)
+    html = html.replace(/^### (.+)$/gm, '<h4 class="md-h4">$1</h4>');
+    html = html.replace(/^## (.+)$/gm, '<h3 class="md-h3">$1</h3>');
+
+    // Code blocks
+    html = html.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre class="code-block"><code class="lang-$1">$2</code></pre>');
 
     // Inline code
     html = html.replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>');
@@ -192,17 +141,21 @@ export class ChatComponent implements OnInit, AfterViewChecked {
     // Italic
     html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
 
+    // Ordered lists
+    html = html.replace(/^(\d+)\. (.+)$/gm, '<li class="ol-item" value="$1">$2</li>');
+
     // Unordered lists
     html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
-    html = html.replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>');
+    html = html.replace(/(<li>.*<\/li>\n?)+/g, '<ul class="md-list">$&</ul>');
 
     // Line breaks
     html = html.replace(/\n/g, '<br>');
 
-    // Clean up <br> inside <ul>
-    html = html.replace(/<ul><br>/g, '<ul>');
+    // Clean up
+    html = html.replace(/<ul class="md-list"><br>/g, '<ul class="md-list">');
     html = html.replace(/<br><\/ul>/g, '</ul>');
     html = html.replace(/<\/li><br><li>/g, '</li><li>');
+    html = html.replace(/<\/h[34]><br>/g, (m) => m.replace('<br>', ''));
 
     return html;
   }

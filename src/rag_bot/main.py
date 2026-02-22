@@ -18,12 +18,10 @@ from rag_bot.config import (
     EMBED_MODEL_NAME, COLLECTION_NAME, LLM_PROVIDER, LLM_MODEL, LLM_API_KEY,
 )
 from rag_bot.retrieval.retriever import (
-    hybrid_retrieve, retrieve_by_vendor, get_collection,
+    hybrid_retrieve, get_collection,
     get_embedder, reload_collection,
 )
-from rag_bot.generation.generator import (
-    generate_answer, generate_config,
-)
+from rag_bot.generation.generator import generate_answer
 from rag_bot.session_manager import session_manager
 from rag_bot.ingestion.pdf_loader import extract_pdf_text, chunk_text as chunk_text_pdf
 from rag_bot.ingestion.html_loader import extract_html_text, chunk_text as chunk_text_html
@@ -69,15 +67,6 @@ class QueryResponse(BaseModel):
     answer: str
     sources: List[SourceInfo]
     session_id: str
-
-class ConfigGenRequest(BaseModel):
-    request: str
-    vendor: Optional[str] = None
-    top_k: Optional[int] = 5
-
-class ConfigGenResponse(BaseModel):
-    config: str
-    sources: List[SourceInfo]
 
 class DocumentInfo(BaseModel):
     id: str
@@ -331,38 +320,6 @@ def delete_document(vendor: str, document_name: str):
         "chunks_removed": len(ids_to_delete),
         "total_remaining": col.count(),
     }
-
-
-@app.post("/config-gen", response_model=ConfigGenResponse)
-def generate_configuration(request: ConfigGenRequest):
-    """Generate configuration based on documentation."""
-    try:
-        if request.vendor:
-            chunks, metas = retrieve_by_vendor(
-                request.request, request.vendor, top_k=request.top_k
-            )
-        else:
-            chunks, metas = hybrid_retrieve(request.request, top_k=request.top_k)
-
-        if not chunks:
-            return ConfigGenResponse(
-                config="❌ No relevant documentation found to generate configuration.",
-                sources=[],
-            )
-
-        config = generate_config(
-            context_chunks=chunks,
-            metadatas=metas,
-            config_request=request.request,
-        )
-
-        return ConfigGenResponse(
-            config=config,
-            sources=_parse_sources(metas),
-        )
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/analytics", response_model=AnalyticsResponse)

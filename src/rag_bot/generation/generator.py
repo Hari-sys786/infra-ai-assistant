@@ -96,26 +96,3 @@ def generate_answer(
     messages.append({"role": "user", "content": user_message})
 
     return _call_llm(system_prompt or build_system_prompt(), messages)
-
-
-def generate_config(
-    context_chunks: List[str],
-    metadatas: List[Dict],
-    config_request: str,
-) -> str:
-    context_str = "\n\n".join(context_chunks[:5])
-    system = (
-        "You are an expert network/systems engineer. Generate accurate, production-ready "
-        "configuration snippets based on vendor documentation. Include comments explaining "
-        "each section."
-    )
-    user_message = (
-        f"Configuration request: {config_request}\n\n"
-        f"Relevant documentation:\n\n{context_str}\n\n"
-        "Generate the requested configuration. Include:\n"
-        "1. The configuration snippet in a code block\n"
-        "2. Brief explanation of each section\n"
-        "3. Any prerequisites or important notes\n"
-        "4. Common variations or options"
-    )
-    return _call_llm(system, [{"role": "user", "content": user_message}])
