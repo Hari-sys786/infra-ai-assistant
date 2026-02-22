@@ -98,37 +98,6 @@ def generate_answer(
     return _call_llm(system_prompt or build_system_prompt(), messages)
 
 
-def generate_comparison(
-    vendors: List[str],
-    vendor_contexts: Dict[str, List[str]],
-    vendor_metadatas: Dict[str, List[Dict]],
-    topic: str,
-) -> str:
-    context_parts = []
-    for vendor in vendors:
-        chunks = vendor_contexts.get(vendor, [])
-        if chunks:
-            vendor_context = "\n".join(chunks[:5])
-            context_parts.append(f"=== {vendor} Documentation ===\n{vendor_context}")
-    context_str = "\n\n".join(context_parts)
-
-    system = (
-        "You are an expert IT infrastructure analyst. Create detailed, structured "
-        "comparisons between vendors/products based on documentation. "
-        "Always produce a markdown table with clear categories."
-    )
-    user_message = (
-        f"Compare the following vendors/topics: {', '.join(vendors)}\n\n"
-        f"Topic: {topic}\n\n"
-        f"Documentation context:\n\n{context_str}\n\n"
-        "Create a structured comparison table with these categories where applicable:\n"
-        "- Features\n- Performance\n- Security\n- Management/Administration\n"
-        "- Scalability\n- Pricing Notes\n- Key Strengths\n- Key Limitations\n\n"
-        "Use a markdown table format. If information is not available in the docs, note it."
-    )
-    return _call_llm(system, [{"role": "user", "content": user_message}])
-
-
 def generate_config(
     context_chunks: List[str],
     metadatas: List[Dict],
@@ -150,31 +119,3 @@ def generate_config(
         "4. Common variations or options"
     )
     return _call_llm(system, [{"role": "user", "content": user_message}])
-
-
-def generate_troubleshoot(
-    context_chunks: List[str],
-    metadatas: List[Dict],
-    problem_description: str,
-    conversation_history: Optional[List[Dict]] = None,
-) -> str:
-    context_str = "\n\n".join(context_chunks[:5])
-    system = (
-        "You are an expert IT troubleshooting assistant. Help diagnose and resolve "
-        "IT infrastructure issues step by step. Be methodical:\n"
-        "1. First, clarify the problem if needed\n"
-        "2. Identify potential root causes\n"
-        "3. Suggest diagnostic commands/steps\n"
-        "4. Provide solutions based on the documentation\n"
-        "5. Suggest preventive measures"
-    )
-    messages = []
-    if conversation_history:
-        messages.extend(conversation_history)
-    user_message = (
-        f"Problem: {problem_description}\n\n"
-        f"Relevant documentation:\n\n{context_str}\n\n"
-        "Please help diagnose and resolve this issue."
-    )
-    messages.append({"role": "user", "content": user_message})
-    return _call_llm(system, messages)

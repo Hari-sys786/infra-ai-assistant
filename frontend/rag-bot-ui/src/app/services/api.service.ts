@@ -4,12 +4,8 @@ import { Observable } from 'rxjs';
 import {
   QueryRequest,
   QueryResponse,
-  CompareRequest,
-  CompareResponse,
   ConfigGenRequest,
   ConfigGenResponse,
-  TroubleshootRequest,
-  TroubleshootResponse,
   DocumentListResponse,
   AnalyticsResponse,
   HealthResponse,
@@ -57,19 +53,9 @@ export class ApiService {
     );
   }
 
-  // Compare
-  compare(request: CompareRequest): Observable<CompareResponse> {
-    return this.http.post<CompareResponse>(`${this.baseUrl}/compare`, request);
-  }
-
   // Config gen
   generateConfig(request: ConfigGenRequest): Observable<ConfigGenResponse> {
     return this.http.post<ConfigGenResponse>(`${this.baseUrl}/config-gen`, request);
-  }
-
-  // Troubleshoot
-  troubleshoot(request: TroubleshootRequest): Observable<TroubleshootResponse> {
-    return this.http.post<TroubleshootResponse>(`${this.baseUrl}/troubleshoot`, request);
   }
 
   // Analytics

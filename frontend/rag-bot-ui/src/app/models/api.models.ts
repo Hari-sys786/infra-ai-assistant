@@ -25,18 +25,6 @@ export interface QueryResponse {
   session_id: string;
 }
 
-export interface CompareRequest {
-  vendors: string[];
-  topic: string;
-  top_k?: number;
-}
-
-export interface CompareResponse {
-  comparison: string;
-  vendors_found: string[];
-  sources: SourceInfo[];
-}
-
 export interface ConfigGenRequest {
   request: string;
   vendor?: string;
@@ -46,19 +34,6 @@ export interface ConfigGenRequest {
 export interface ConfigGenResponse {
   config: string;
   sources: SourceInfo[];
-}
-
-export interface TroubleshootRequest {
-  problem: string;
-  session_id?: string;
-  top_k?: number;
-  conversation_history?: MessageItem[];
-}
-
-export interface TroubleshootResponse {
-  diagnosis: string;
-  sources: SourceInfo[];
-  session_id: string;
 }
 
 export interface DocumentInfo {

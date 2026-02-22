@@ -17,12 +17,8 @@ export class ChatComponent implements OnInit, AfterViewChecked {
   sessionId: string | undefined;
   selectedSources: SourceInfo[] = [];
   showSources = false;
-  agentMode: 'query' | 'compare' | 'config' | 'troubleshoot' = 'query';
+  agentMode: 'query' | 'config' = 'query';
   private shouldScroll = false;
-
-  // Compare fields
-  compareVendors = '';
-  compareTopic = '';
 
   // Config gen fields
   configRequest = '';
@@ -30,9 +26,7 @@ export class ChatComponent implements OnInit, AfterViewChecked {
 
   modes = [
     { value: 'query' as const, label: 'Q&A', icon: '💬' },
-    { value: 'compare' as const, label: 'Compare', icon: '⚖️' },
     { value: 'config' as const, label: 'Config Gen', icon: '⚙️' },
-    { value: 'troubleshoot' as const, label: 'Troubleshoot', icon: '🔧' },
   ];
 
   constructor(private api: ApiService) {}
@@ -43,9 +37,7 @@ export class ChatComponent implements OnInit, AfterViewChecked {
       content:
         'Welcome to the **IT Infrastructure Assistant**! I can help you with:\n\n' +
         '- **Questions** about networking, servers, firewalls, and more\n' +
-        '- **Comparing** vendors (e.g., Cisco vs Juniper)\n' +
-        '- **Generating** configurations (e.g., VLAN setup for FortiGate)\n' +
-        '- **Troubleshooting** issues step by step\n\n' +
+        '- **Generating** configurations (e.g., VLAN setup for FortiGate)\n\n' +
         'How can I help you today?',
       timestamp: new Date(),
     });
@@ -58,7 +50,7 @@ export class ChatComponent implements OnInit, AfterViewChecked {
     }
   }
 
-  setMode(mode: 'query' | 'compare' | 'config' | 'troubleshoot'): void {
+  setMode(mode: 'query' | 'config'): void {
     this.agentMode = mode;
   }
 
@@ -81,14 +73,8 @@ export class ChatComponent implements OnInit, AfterViewChecked {
     }
 
     switch (this.agentMode) {
-      case 'compare':
-        this.sendCompare(text);
-        break;
       case 'config':
         this.sendConfigGen(text);
-        break;
-      case 'troubleshoot':
-        this.sendTroubleshoot(text);
         break;
       default:
         this.sendQuery(text);
@@ -132,35 +118,6 @@ export class ChatComponent implements OnInit, AfterViewChecked {
       });
   }
 
-  private sendCompare(text: string): void {
-    const vendors = this.compareVendors
-      ? this.compareVendors.split(',').map((v) => v.trim())
-      : this.extractVendors(text);
-    const topic = this.compareTopic || text;
-
-    this.api.compare({ vendors, topic, top_k: 5 }).subscribe({
-      next: (res) => {
-        this.messages.push({
-          role: 'assistant',
-          content: res.comparison,
-          sources: res.sources,
-          timestamp: new Date(),
-        });
-        this.isLoading = false;
-        this.shouldScroll = true;
-      },
-      error: (err) => {
-        this.messages.push({
-          role: 'assistant',
-          content: '❌ Error: ' + (err.error?.detail || err.message),
-          timestamp: new Date(),
-        });
-        this.isLoading = false;
-        this.shouldScroll = true;
-      },
-    });
-  }
-
   private sendConfigGen(text: string): void {
     this.api
       .generateConfig({
@@ -189,49 +146,6 @@ export class ChatComponent implements OnInit, AfterViewChecked {
           this.shouldScroll = true;
         },
       });
-  }
-
-  private sendTroubleshoot(text: string): void {
-    const history = this.messages
-      .filter((m) => m.role === 'user' || m.role === 'assistant')
-      .slice(-10)
-      .map((m) => ({ role: m.role, content: m.content }));
-
-    this.api
-      .troubleshoot({
-        problem: text,
-        session_id: this.sessionId,
-        top_k: 5,
-        conversation_history: history,
-      })
-      .subscribe({
-        next: (res) => {
-          this.sessionId = res.session_id;
-          this.messages.push({
-            role: 'assistant',
-            content: res.diagnosis,
-            sources: res.sources,
-            timestamp: new Date(),
-          });
-          this.isLoading = false;
-          this.shouldScroll = true;
-        },
-        error: (err) => {
-          this.messages.push({
-            role: 'assistant',
-            content: '❌ Error: ' + (err.error?.detail || err.message),
-            timestamp: new Date(),
-          });
-          this.isLoading = false;
-          this.shouldScroll = true;
-        },
-      });
-  }
-
-  private extractVendors(text: string): string[] {
-    const known = ['Cisco', 'Juniper', 'Fortinet', 'Dell', 'IBM', 'FortiGate', 'FortiWeb'];
-    const found = known.filter((v) => text.toLowerCase().includes(v.toLowerCase()));
-    return found.length >= 2 ? found : ['Cisco', 'Juniper'];
   }
 
   showSourcePanel(sources: SourceInfo[]): void {

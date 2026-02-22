@@ -22,8 +22,7 @@ from rag_bot.retrieval.retriever import (
     get_embedder, reload_collection,
 )
 from rag_bot.generation.generator import (
-    generate_answer, generate_comparison, generate_config,
-    generate_troubleshoot,
+    generate_answer, generate_config,
 )
 from rag_bot.session_manager import session_manager
 from rag_bot.ingestion.pdf_loader import extract_pdf_text, chunk_text as chunk_text_pdf
@@ -71,16 +70,6 @@ class QueryResponse(BaseModel):
     sources: List[SourceInfo]
     session_id: str
 
-class CompareRequest(BaseModel):
-    vendors: List[str]
-    topic: str
-    top_k: Optional[int] = 5
-
-class CompareResponse(BaseModel):
-    comparison: str
-    vendors_found: List[str]
-    sources: List[SourceInfo]
-
 class ConfigGenRequest(BaseModel):
     request: str
     vendor: Optional[str] = None
@@ -89,17 +78,6 @@ class ConfigGenRequest(BaseModel):
 class ConfigGenResponse(BaseModel):
     config: str
     sources: List[SourceInfo]
-
-class TroubleshootRequest(BaseModel):
-    problem: str
-    session_id: Optional[str] = None
-    top_k: Optional[int] = 5
-    conversation_history: Optional[List[MessageItem]] = None
-
-class TroubleshootResponse(BaseModel):
-    diagnosis: str
-    sources: List[SourceInfo]
-    session_id: str
 
 class DocumentInfo(BaseModel):
     id: str
@@ -355,54 +333,6 @@ def delete_document(vendor: str, document_name: str):
     }
 
 
-@app.post("/compare", response_model=CompareResponse)
-def compare_vendors(request: CompareRequest):
-    """Compare multiple vendors or topics."""
-    try:
-        vendor_contexts: Dict[str, List[str]] = {}
-        vendor_metadatas: Dict[str, List[Dict]] = {}
-        all_sources = []
-        vendors_found = []
-
-        for vendor in request.vendors:
-            chunks, metas = retrieve_by_vendor(
-                request.topic, vendor, top_k=request.top_k
-            )
-            if chunks:
-                vendor_contexts[vendor] = chunks
-                vendor_metadatas[vendor] = metas
-                vendors_found.append(vendor)
-                all_sources.extend(_parse_sources(metas))
-
-        if not vendors_found:
-            # Fall back to general search
-            chunks, metas = hybrid_retrieve(
-                f"{request.topic} {' '.join(request.vendors)}",
-                top_k=request.top_k * len(request.vendors),
-            )
-            if chunks:
-                vendor_contexts["General"] = chunks
-                vendor_metadatas["General"] = metas
-                vendors_found = request.vendors
-                all_sources = _parse_sources(metas)
-
-        comparison = generate_comparison(
-            vendors=request.vendors,
-            vendor_contexts=vendor_contexts,
-            vendor_metadatas=vendor_metadatas,
-            topic=request.topic,
-        )
-
-        return CompareResponse(
-            comparison=comparison,
-            vendors_found=vendors_found,
-            sources=all_sources,
-        )
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
 @app.post("/config-gen", response_model=ConfigGenResponse)
 def generate_configuration(request: ConfigGenRequest):
     """Generate configuration based on documentation."""
@@ -429,47 +359,6 @@ def generate_configuration(request: ConfigGenRequest):
         return ConfigGenResponse(
             config=config,
             sources=_parse_sources(metas),
-        )
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.post("/troubleshoot", response_model=TroubleshootResponse)
-def troubleshoot_issue(request: TroubleshootRequest):
-    """Multi-step troubleshooting agent."""
-    t0 = time.time()
-    try:
-        session_id = request.session_id or session_manager.create_session()
-
-        # Build conversation history
-        history = []
-        if request.conversation_history:
-            history = [{"role": m.role, "content": m.content} for m in request.conversation_history]
-        elif request.session_id:
-            history = session_manager.get_history(session_id)
-
-        # Retrieve relevant docs
-        chunks, metas = hybrid_retrieve(request.problem, top_k=request.top_k)
-
-        diagnosis = generate_troubleshoot(
-            context_chunks=chunks,
-            metadatas=metas,
-            problem_description=request.problem,
-            conversation_history=history if history else None,
-        )
-
-        # Track in session
-        session_manager.add_message(session_id, "user", request.problem)
-        session_manager.add_message(session_id, "assistant", diagnosis)
-
-        response_time = time.time() - t0
-        session_manager.track_query(request.problem, response_time)
-
-        return TroubleshootResponse(
-            diagnosis=diagnosis,
-            sources=_parse_sources(metas) if metas else [],
-            session_id=session_id,
         )
 
     except Exception as e:

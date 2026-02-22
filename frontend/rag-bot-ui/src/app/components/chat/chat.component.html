@@ -32,28 +32,7 @@
     </div>
   </div>
 
-  <!-- Agent Options (Compare/Config) -->
-  <div class="agent-options" *ngIf="agentMode === 'compare'">
-    <div class="option-group">
-      <label>Vendors</label>
-      <input
-        type="text"
-        [(ngModel)]="compareVendors"
-        placeholder="Cisco, Juniper, Fortinet"
-        class="option-input"
-      />
-    </div>
-    <div class="option-group">
-      <label>Topic</label>
-      <input
-        type="text"
-        [(ngModel)]="compareTopic"
-        placeholder="firewall features"
-        class="option-input"
-      />
-    </div>
-  </div>
-
+  <!-- Agent Options (Config) -->
   <div class="agent-options" *ngIf="agentMode === 'config'">
     <div class="option-group">
       <label>Vendor (optional)</label>
