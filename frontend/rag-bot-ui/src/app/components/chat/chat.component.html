@@ -42,108 +42,136 @@
     </div>
   </header>
 
-  <!-- ── Main Area ── -->
-  <div class="main">
-    <!-- ── Chat Column ── -->
-    <div class="chat-col">
-      <div class="chat-scroll" #messageContainer>
-        <div class="chat-inner">
-          <!-- Hero -->
-          <div class="hero" *ngIf="messages.length === 0">
-            <div class="hero-icon">✦</div>
-            <h2 class="hero-title">What can I help you with?</h2>
-            <p class="hero-sub">Ask questions about your indexed infrastructure docs — networking, servers, firewalls, storage, and more.</p>
-            <div class="hero-chips">
-              <button class="chip" (click)="inputText = 'What is FortiGate and its key features?'; sendMessage()">🔥 FortiGate overview</button>
-              <button class="chip" (click)="inputText = 'How to configure VLANs on Cisco?'; sendMessage()">🔧 VLAN configuration</button>
-              <button class="chip" (click)="inputText = 'Dell PowerEdge server specs'; sendMessage()">📊 PowerEdge specs</button>
-              <button class="chip" (click)="inputText = 'Firewall security best practices'; sendMessage()">🛡️ Security best practices</button>
+  <!-- ── Main Chat ── -->
+  <div class="chat-col">
+    <div class="chat-scroll" #messageContainer>
+      <div class="chat-inner">
+        <!-- Hero -->
+        <div class="hero" *ngIf="messages.length === 0">
+          <div class="hero-icon">✦</div>
+          <h2 class="hero-title">What can I help you with?</h2>
+          <p class="hero-sub">Ask questions about your indexed infrastructure docs — networking, servers, firewalls, storage, and more.</p>
+          <div class="hero-chips">
+            <button class="chip" (click)="inputText = 'What is FortiGate and its key features?'; sendMessage()">🔥 FortiGate overview</button>
+            <button class="chip" (click)="inputText = 'How to configure VLANs on Cisco?'; sendMessage()">🔧 VLAN configuration</button>
+            <button class="chip" (click)="inputText = 'Dell PowerEdge server specs'; sendMessage()">📊 PowerEdge specs</button>
+            <button class="chip" (click)="inputText = 'Firewall security best practices'; sendMessage()">🛡️ Security best practices</button>
+          </div>
+        </div>
+
+        <!-- Messages -->
+        <ng-container *ngFor="let msg of messages">
+          <div class="msg" [class.msg--user]="msg.role === 'user'" [class.msg--ai]="msg.role === 'assistant'">
+            <div class="ai-block" *ngIf="msg.role === 'assistant'">
+              <div class="ai-head">
+                <span class="ai-badge"><span class="star">✦</span> Assistant</span>
+                <span class="time">{{ msg.timestamp | date:'HH:mm' }}</span>
+              </div>
+              <div class="ai-text" [innerHTML]="formatContent(msg.content)"></div>
+              <button class="src-btn" *ngIf="msg.sources && msg.sources.length" (click)="showSourcePanel(msg.sources!)">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                {{ msg.sources!.length }} source{{ msg.sources!.length > 1 ? 's' : '' }}
+              </button>
+            </div>
+            <div class="user-bubble" *ngIf="msg.role === 'user'">
+              {{ msg.content }}
+              <span class="time-u">{{ msg.timestamp | date:'HH:mm' }}</span>
             </div>
           </div>
+        </ng-container>
 
-          <!-- Messages -->
-          <ng-container *ngFor="let msg of messages">
-            <div class="msg" [class.msg--user]="msg.role === 'user'" [class.msg--ai]="msg.role === 'assistant'">
-              <!-- AI -->
-              <div class="ai-block" *ngIf="msg.role === 'assistant'">
-                <div class="ai-head">
-                  <span class="ai-badge"><span class="star">✦</span> Assistant</span>
-                  <span class="time">{{ msg.timestamp | date:'HH:mm' }}</span>
-                </div>
-                <div class="ai-text" [innerHTML]="formatContent(msg.content)"></div>
-                <button class="src-btn" *ngIf="msg.sources && msg.sources.length" (click)="showSourcePanel(msg.sources!)">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                  {{ msg.sources!.length }} source{{ msg.sources!.length > 1 ? 's' : '' }}
-                </button>
-              </div>
-              <!-- User -->
-              <div class="user-bubble" *ngIf="msg.role === 'user'">
-                {{ msg.content }}
-                <span class="time-u">{{ msg.timestamp | date:'HH:mm' }}</span>
-              </div>
-            </div>
-          </ng-container>
-
-          <!-- Thinking -->
-          <div class="msg msg--ai" *ngIf="isLoading">
-            <div class="ai-block">
-              <div class="ai-head"><span class="ai-badge"><span class="star">✦</span> Assistant</span></div>
-              <div class="thinking"><span class="d"></span><span class="d"></span><span class="d"></span><em>Searching documentation…</em></div>
-            </div>
+        <!-- Thinking -->
+        <div class="msg msg--ai" *ngIf="isLoading">
+          <div class="ai-block">
+            <div class="ai-head"><span class="ai-badge"><span class="star">✦</span> Assistant</span></div>
+            <div class="thinking"><span class="d"></span><span class="d"></span><span class="d"></span><em>Searching documentation…</em></div>
           </div>
         </div>
       </div>
+    </div>
 
-      <!-- Upload Panel (slides up above input) -->
-      <div class="upload-panel" *ngIf="showUpload">
-        <div class="up-header">
-          <h4>Upload Document</h4>
-          <button class="x-btn" (click)="toggleUpload()">✕</button>
-        </div>
-        <div class="up-body">
-          <input type="text" [(ngModel)]="uploadVendor" placeholder="Vendor (e.g. Cisco, Dell)" class="up-input" />
-          <div class="drop-zone" [class.dragging]="isDragging" (dragover)="onDragOver($event)" (dragleave)="onDragLeave($event)" (drop)="onDrop($event)" (click)="fileInput.click()">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            <span>Drop PDF or HTML here, or <u>browse</u></span>
-            <input #fileInput type="file" accept=".pdf,.html,.htm" (change)="onFileSelected($event)" hidden />
+    <!-- ── Upload Panel ── -->
+    <div class="upload-panel" *ngIf="showUpload" (dragover)="onDragOver($event)" (dragleave)="onDragLeave($event)" (drop)="onDrop($event)">
+      <div class="up-top">
+        <h4>📁 Documents</h4>
+        <button class="x-btn" (click)="toggleUpload()">✕</button>
+      </div>
+
+      <div class="up-content">
+        <!-- Drop zone -->
+        <div class="drop-zone" [class.dragging]="isDragging" (click)="fileInput.click()">
+          <div class="dz-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
           </div>
-          <div class="up-progress" *ngIf="isUploading"><div class="bar"><div class="fill"></div></div></div>
-          <p class="up-msg" *ngIf="uploadMsg" [class.ok]="uploadOk" [class.err]="!uploadOk && !isUploading">{{ uploadMsg }}</p>
+          <div class="dz-text">
+            <span class="dz-main">Drop files here or <u>browse</u></span>
+            <span class="dz-sub">PDF, HTML — multiple files supported</span>
+          </div>
+          <input #fileInput type="file" accept=".pdf,.html,.htm" multiple (change)="onFileSelected($event)" hidden />
         </div>
-        <!-- Indexed docs mini table -->
-        <div class="up-docs" *ngIf="documents.length > 0">
-          <h5>Indexed Documents <span class="doc-count">{{ totalChunks }} chunks</span></h5>
-          <div class="doc-list">
-            <div class="doc-row" *ngFor="let doc of documents">
-              <span class="doc-vendor">{{ doc.vendor }}</span>
-              <span class="doc-name">{{ doc.document }}</span>
-              <span class="doc-chunks">{{ doc.chunk_count }}</span>
-              <button class="doc-del" (click)="deleteDocument(doc)" title="Remove">✕</button>
+
+        <!-- Upload queue -->
+        <div class="up-queue" *ngIf="uploads.length > 0">
+          <div class="uq-item" *ngFor="let u of uploads; let i = index" [class.done]="u.status === 'done'" [class.err]="u.status === 'error'" [class.uploading]="u.status === 'uploading'">
+            <div class="uq-icon">
+              <svg *ngIf="u.status === 'done'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <svg *ngIf="u.status === 'error'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              <div *ngIf="u.status === 'uploading'" class="uq-spinner"></div>
+            </div>
+            <div class="uq-info">
+              <span class="uq-name">{{ u.name }}</span>
+              <span class="uq-meta">{{ u.size }} <span *ngIf="u.msg">· {{ u.msg }}</span></span>
+            </div>
+            <button class="uq-x" (click)="removeUploadItem(i)">✕</button>
+          </div>
+        </div>
+
+        <!-- Indexed docs -->
+        <div class="idx-section" *ngIf="documents.length > 0">
+          <div class="idx-head">
+            <span class="idx-title">Indexed</span>
+            <span class="idx-count">{{ totalChunks }} chunks · {{ totalDocs }} docs</span>
+          </div>
+          <div class="idx-list">
+            <div class="idx-row" *ngFor="let doc of documents">
+              <div class="idx-file-icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              </div>
+              <span class="idx-name">{{ doc.document }}</span>
+              <span class="idx-badge">{{ doc.vendor }}</span>
+              <span class="idx-chunks">{{ doc.chunk_count }} chunks</span>
+              <button class="idx-del" (click)="deleteDocument(doc)" title="Remove from index">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+              </button>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Input Bar -->
-      <div class="input-bar">
-        <div class="input-row">
-          <button class="attach-btn" (click)="toggleUpload()" [class.active]="showUpload" title="Upload documents">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/>
-            </svg>
-          </button>
-          <textarea #messageInput [(ngModel)]="inputText" (keydown)="onKeydown($event)" (input)="onTextareaInput($event)" placeholder="Ask about your infrastructure docs..." rows="1" class="the-input"></textarea>
-          <button class="send-btn" (click)="sendMessage()" [disabled]="isLoading || !inputText.trim()" [class.ready]="inputText.trim() && !isLoading">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-          </button>
+        <div class="idx-empty" *ngIf="documents.length === 0">
+          <span>No documents indexed yet. Upload some files to get started.</span>
         </div>
-        <div class="input-foot">
-          <button class="foot-btn" (click)="clearChat()">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
-            New chat
-          </button>
-          <span class="foot-hint">Hybrid RAG · Multi-turn · Enter to send</span>
-        </div>
+      </div>
+    </div>
+
+    <!-- ── Input Bar ── -->
+    <div class="input-bar">
+      <div class="input-row">
+        <button class="attach-btn" (click)="toggleUpload()" [class.active]="showUpload" title="Documents">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/>
+          </svg>
+        </button>
+        <textarea #messageInput [(ngModel)]="inputText" (keydown)="onKeydown($event)" (input)="onTextareaInput($event)" placeholder="Ask about your infrastructure docs..." rows="1" class="the-input"></textarea>
+        <button class="send-btn" (click)="sendMessage()" [disabled]="isLoading || !inputText.trim()" [class.ready]="inputText.trim() && !isLoading">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+      <div class="input-foot">
+        <button class="foot-btn" (click)="clearChat()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+          New chat
+        </button>
+        <span class="foot-hint">Hybrid RAG · Multi-turn · Enter to send</span>
       </div>
     </div>
   </div>

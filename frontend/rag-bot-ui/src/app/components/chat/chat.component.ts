@@ -2,6 +2,15 @@ import { Component, OnInit, ViewChild, ElementRef, AfterViewChecked } from '@ang
 import { ApiService } from '../../services/api.service';
 import { MessageItem, SourceInfo, HealthResponse, DocumentInfo } from '../../models/api.models';
 
+interface UploadItem {
+  file: File;
+  name: string;
+  size: string;
+  status: 'pending' | 'uploading' | 'done' | 'error';
+  msg: string;
+  chunks: number;
+}
+
 @Component({
   selector: 'app-chat',
   templateUrl: './chat.component.html',
@@ -19,7 +28,7 @@ export class ChatComponent implements OnInit, AfterViewChecked {
   showSources = false;
   private shouldScroll = false;
 
-  // Dashboard stats
+  // Dashboard
   health: HealthResponse | null = null;
   totalDocs = 0;
   totalChunks = 0;
@@ -28,10 +37,7 @@ export class ChatComponent implements OnInit, AfterViewChecked {
 
   // Upload
   showUpload = false;
-  uploadVendor = '';
-  isUploading = false;
-  uploadMsg = '';
-  uploadOk = false;
+  uploads: UploadItem[] = [];
   isDragging = false;
 
   constructor(private api: ApiService) {}
@@ -48,14 +54,8 @@ export class ChatComponent implements OnInit, AfterViewChecked {
   }
 
   loadStats(): void {
-    this.api.health().subscribe({
-      next: (h) => this.health = h,
-      error: () => {},
-    });
-    this.api.getAnalytics().subscribe({
-      next: (a) => this.totalQueries = a.total_queries,
-      error: () => {},
-    });
+    this.api.health().subscribe({ next: (h) => this.health = h, error: () => {} });
+    this.api.getAnalytics().subscribe({ next: (a) => this.totalQueries = a.total_queries, error: () => {} });
     this.api.getDocuments().subscribe({
       next: (d) => {
         this.documents = d.documents;
@@ -77,9 +77,7 @@ export class ChatComponent implements OnInit, AfterViewChecked {
     this.isLoading = true;
     this.shouldScroll = true;
 
-    if (this.messageInput) {
-      this.messageInput.nativeElement.style.height = 'auto';
-    }
+    if (this.messageInput) this.messageInput.nativeElement.style.height = 'auto';
 
     const history = this.messages
       .filter((m) => m.role === 'user' || m.role === 'assistant')
@@ -112,60 +110,63 @@ export class ChatComponent implements OnInit, AfterViewChecked {
 
   toggleUpload(): void {
     this.showUpload = !this.showUpload;
-    this.uploadMsg = '';
   }
 
-  onDragOver(e: DragEvent): void {
-    e.preventDefault();
-    e.stopPropagation();
-    this.isDragging = true;
-  }
-
-  onDragLeave(e: DragEvent): void {
-    e.preventDefault();
-    this.isDragging = false;
-  }
+  onDragOver(e: DragEvent): void { e.preventDefault(); e.stopPropagation(); this.isDragging = true; }
+  onDragLeave(e: DragEvent): void { e.preventDefault(); this.isDragging = false; }
 
   onDrop(e: DragEvent): void {
     e.preventDefault();
     this.isDragging = false;
-    const file = e.dataTransfer?.files[0];
-    if (file) this.uploadFile(file);
+    const files = e.dataTransfer?.files;
+    if (files) this.addFiles(files);
   }
 
   onFileSelected(e: Event): void {
     const input = e.target as HTMLInputElement;
-    if (input.files?.[0]) {
-      this.uploadFile(input.files[0]);
+    if (input.files) {
+      this.addFiles(input.files);
       input.value = '';
     }
   }
 
-  uploadFile(file: File): void {
-    const ext = file.name.split('.').pop()?.toLowerCase();
-    if (!['pdf', 'html', 'htm'].includes(ext || '')) {
-      this.uploadMsg = '❌ Only PDF and HTML files are supported.';
-      this.uploadOk = false;
-      return;
+  addFiles(files: FileList): void {
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const ext = file.name.split('.').pop()?.toLowerCase();
+      if (!['pdf', 'html', 'htm'].includes(ext || '')) {
+        this.uploads.unshift({
+          file, name: file.name, size: this.fmtSize(file.size),
+          status: 'error', msg: 'Unsupported format', chunks: 0,
+        });
+        continue;
+      }
+      const item: UploadItem = {
+        file, name: file.name, size: this.fmtSize(file.size),
+        status: 'uploading', msg: 'Indexing…', chunks: 0,
+      };
+      this.uploads.unshift(item);
+      this.uploadOne(item);
     }
+  }
 
-    this.isUploading = true;
-    this.uploadMsg = '';
-    const vendor = this.uploadVendor.trim() || 'Uploaded';
-
-    this.api.uploadDocument(file, vendor).subscribe({
+  uploadOne(item: UploadItem): void {
+    this.api.uploadDocument(item.file, '').subscribe({
       next: (res) => {
-        this.uploadMsg = `✅ ${res.filename} — ${res.chunks_added} chunks indexed`;
-        this.uploadOk = true;
-        this.isUploading = false;
+        item.status = 'done';
+        item.chunks = res.chunks_added;
+        item.msg = `${res.chunks_added} chunks indexed`;
         this.loadStats();
       },
       error: (err) => {
-        this.uploadMsg = '❌ ' + (err.error?.detail || 'Upload failed');
-        this.uploadOk = false;
-        this.isUploading = false;
+        item.status = 'error';
+        item.msg = err.error?.detail || 'Upload failed';
       },
     });
+  }
+
+  removeUploadItem(i: number): void {
+    this.uploads.splice(i, 1);
   }
 
   deleteDocument(doc: DocumentInfo): void {
@@ -175,24 +176,21 @@ export class ChatComponent implements OnInit, AfterViewChecked {
     });
   }
 
+  fmtSize(bytes: number): string {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+  }
+
   // ── Sources ──
 
-  showSourcePanel(sources: SourceInfo[]): void {
-    this.selectedSources = sources;
-    this.showSources = true;
-  }
-
-  closeSources(): void {
-    this.showSources = false;
-  }
+  showSourcePanel(sources: SourceInfo[]): void { this.selectedSources = sources; this.showSources = true; }
+  closeSources(): void { this.showSources = false; }
 
   // ── Helpers ──
 
   onKeydown(event: KeyboardEvent): void {
-    if (event.key === 'Enter' && !event.shiftKey) {
-      event.preventDefault();
-      this.sendMessage();
-    }
+    if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); this.sendMessage(); }
   }
 
   onTextareaInput(event: Event): void {

@@ -175,7 +175,7 @@ def query_rag(request: QueryRequest):
 @app.post("/upload")
 async def upload_document(
     file: UploadFile = File(...),
-    vendor: str = Form(default="Uploaded"),
+    vendor: str = Form(default=""),
 ):
     """Upload a PDF or HTML file and ingest it into ChromaDB."""
     try:
@@ -184,12 +184,15 @@ async def upload_document(
         if ext not in (".pdf", ".html", ".htm"):
             raise HTTPException(status_code=400, detail="Only PDF and HTML files are supported.")
 
-        # Save uploaded file
-        vendor_dir = UPLOAD_DIR / vendor
-        vendor_dir.mkdir(parents=True, exist_ok=True)
-        file_path = vendor_dir / filename
+        # Auto-derive vendor from filename if not provided
+        doc_vendor = vendor.strip() if vendor.strip() else Path(filename).stem.replace("_", " ").replace("-", " ").title()
+
+        # Save to uploads folder
+        UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+        file_path = UPLOAD_DIR / filename
 
         content = await file.read()
+        file_size = len(content)
         with open(file_path, "wb") as f:
             f.write(content)
 
@@ -205,13 +208,13 @@ async def upload_document(
                 for idx, chunk in enumerate(chunks):
                     embedding = emb.encode(chunk).tolist()
                     metadata = {
-                        "vendor": vendor,
+                        "vendor": doc_vendor,
                         "document": filename,
                         "page": page["page_num"],
                         "chunk": idx,
                         "source_path": str(file_path),
                     }
-                    doc_id = f"{vendor}_{filename}_p{page['page_num']}_c{idx}"
+                    doc_id = f"{doc_vendor}_{filename}_p{page['page_num']}_c{idx}"
                     col.add(
                         documents=[chunk],
                         embeddings=[embedding],
@@ -225,12 +228,12 @@ async def upload_document(
             for idx, chunk in enumerate(chunks):
                 embedding = emb.encode(chunk).tolist()
                 metadata = {
-                    "vendor": vendor,
+                    "vendor": doc_vendor,
                     "document": filename,
                     "chunk": idx,
                     "source_path": str(file_path),
                 }
-                doc_id = f"{vendor}_{filename}_c{idx}"
+                doc_id = f"{doc_vendor}_{filename}_c{idx}"
                 col.add(
                     documents=[chunk],
                     embeddings=[embedding],
@@ -244,8 +247,9 @@ async def upload_document(
         return {
             "status": "success",
             "filename": filename,
-            "vendor": vendor,
+            "vendor": doc_vendor,
             "chunks_added": chunks_added,
+            "file_size": file_size,
             "total_in_collection": col.count(),
         }
 
