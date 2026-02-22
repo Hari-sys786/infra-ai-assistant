@@ -1,15 +1,7 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
-import { ChatComponent } from './components/chat/chat.component';
-import { UploadComponent } from './components/upload/upload.component';
-import { DashboardComponent } from './components/dashboard/dashboard.component';
 
-const routes: Routes = [
-  { path: '', redirectTo: 'chat', pathMatch: 'full' },
-  { path: 'chat', component: ChatComponent },
-  { path: 'upload', component: UploadComponent },
-  { path: 'dashboard', component: DashboardComponent },
-];
+const routes: Routes = [];
 
 @NgModule({
   imports: [RouterModule.forRoot(routes)],

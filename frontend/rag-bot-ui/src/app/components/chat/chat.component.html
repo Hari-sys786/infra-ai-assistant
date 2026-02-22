@@ -1,143 +1,167 @@
-<div class="chat-wrapper">
-  <!-- Messages -->
-  <div class="messages-area" #messageContainer>
-    <div class="messages-inner">
-      <!-- Hero Empty State -->
-      <div class="hero" *ngIf="messages.length <= 1 && !isLoading">
-        <div class="hero-logo">
-          <svg width="44" height="44" viewBox="0 0 24 24" fill="none">
-            <path d="M12 2L2 7l10 5 10-5-10-5z" fill="url(#g1)"/>
-            <path d="M2 17l10 5 10-5" stroke="url(#g2)" stroke-width="2" fill="none"/>
-            <path d="M2 12l10 5 10-5" stroke="url(#g2)" stroke-width="2" fill="none" opacity="0.5"/>
-            <defs>
-              <linearGradient id="g1" x1="2" y1="2" x2="22" y2="12">
-                <stop stop-color="#3B82F6"/><stop offset="1" stop-color="#8B5CF6"/>
-              </linearGradient>
-              <linearGradient id="g2" x1="2" y1="12" x2="22" y2="22">
-                <stop stop-color="#3B82F6"/><stop offset="1" stop-color="#8B5CF6"/>
-              </linearGradient>
-            </defs>
-          </svg>
-        </div>
-        <h1 class="hero-title">Infra AI Assistant</h1>
-        <p class="hero-desc">Ask anything about your IT infrastructure documentation.<br>Powered by hybrid RAG search with multi-turn conversations.</p>
-
-        <div class="suggestions">
-          <button class="chip" (click)="inputText = 'What is FortiGate and its key features?'; sendMessage()">
-            <span class="chip-icon">🔥</span> What is FortiGate?
-          </button>
-          <button class="chip" (click)="inputText = 'How to configure VLANs on a Cisco switch?'; sendMessage()">
-            <span class="chip-icon">🔧</span> Configure VLANs
-          </button>
-          <button class="chip" (click)="inputText = 'Dell PowerEdge server specifications'; sendMessage()">
-            <span class="chip-icon">📊</span> PowerEdge specs
-          </button>
-          <button class="chip" (click)="inputText = 'Firewall security best practices'; sendMessage()">
-            <span class="chip-icon">🛡️</span> Firewall best practices
-          </button>
-        </div>
+<div class="dashboard">
+  <!-- ── Top Bar ── -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <path d="M12 2L2 7l10 5 10-5-10-5z" fill="url(#tg1)"/>
+          <path d="M2 17l10 5 10-5" stroke="url(#tg2)" stroke-width="2" fill="none"/>
+          <path d="M2 12l10 5 10-5" stroke="url(#tg2)" stroke-width="2" fill="none" opacity="0.5"/>
+          <defs>
+            <linearGradient id="tg1" x1="2" y1="2" x2="22" y2="12"><stop stop-color="#3B82F6"/><stop offset="1" stop-color="#8B5CF6"/></linearGradient>
+            <linearGradient id="tg2" x1="2" y1="12" x2="22" y2="22"><stop stop-color="#3B82F6"/><stop offset="1" stop-color="#8B5CF6"/></linearGradient>
+          </defs>
+        </svg>
       </div>
+      <div class="brand-info">
+        <span class="brand-name">Infra AI Assistant</span>
+        <span class="brand-tag">Enterprise IT Documentation Intelligence</span>
+      </div>
+    </div>
 
-      <!-- Messages -->
-      <ng-container *ngFor="let msg of messages; let i = index">
-        <div
-          class="msg"
-          [class.msg--user]="msg.role === 'user'"
-          [class.msg--ai]="msg.role === 'assistant'"
-          [class.fade-up]="true"
-        >
-          <!-- AI messages: full width block -->
-          <div class="msg-inner" *ngIf="msg.role === 'assistant'">
-            <div class="msg-head">
-              <div class="ai-badge">
-                <span class="ai-star">✦</span> Assistant
+    <div class="stats">
+      <div class="stat">
+        <span class="stat-val">{{ totalChunks }}</span>
+        <span class="stat-lbl">Chunks</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat">
+        <span class="stat-val">{{ totalDocs }}</span>
+        <span class="stat-lbl">Documents</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat">
+        <span class="stat-val">{{ totalQueries }}</span>
+        <span class="stat-lbl">Queries</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat">
+        <span class="stat-val status-dot-wrap"><span class="status-dot"></span> {{ health?.status || '...' }}</span>
+        <span class="stat-lbl">Status</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Main Area ── -->
+  <div class="main">
+    <!-- ── Chat Column ── -->
+    <div class="chat-col">
+      <div class="chat-scroll" #messageContainer>
+        <div class="chat-inner">
+          <!-- Hero -->
+          <div class="hero" *ngIf="messages.length === 0">
+            <div class="hero-icon">✦</div>
+            <h2 class="hero-title">What can I help you with?</h2>
+            <p class="hero-sub">Ask questions about your indexed infrastructure docs — networking, servers, firewalls, storage, and more.</p>
+            <div class="hero-chips">
+              <button class="chip" (click)="inputText = 'What is FortiGate and its key features?'; sendMessage()">🔥 FortiGate overview</button>
+              <button class="chip" (click)="inputText = 'How to configure VLANs on Cisco?'; sendMessage()">🔧 VLAN configuration</button>
+              <button class="chip" (click)="inputText = 'Dell PowerEdge server specs'; sendMessage()">📊 PowerEdge specs</button>
+              <button class="chip" (click)="inputText = 'Firewall security best practices'; sendMessage()">🛡️ Security best practices</button>
+            </div>
+          </div>
+
+          <!-- Messages -->
+          <ng-container *ngFor="let msg of messages">
+            <div class="msg" [class.msg--user]="msg.role === 'user'" [class.msg--ai]="msg.role === 'assistant'">
+              <!-- AI -->
+              <div class="ai-block" *ngIf="msg.role === 'assistant'">
+                <div class="ai-head">
+                  <span class="ai-badge"><span class="star">✦</span> Assistant</span>
+                  <span class="time">{{ msg.timestamp | date:'HH:mm' }}</span>
+                </div>
+                <div class="ai-text" [innerHTML]="formatContent(msg.content)"></div>
+                <button class="src-btn" *ngIf="msg.sources && msg.sources.length" (click)="showSourcePanel(msg.sources!)">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                  {{ msg.sources!.length }} source{{ msg.sources!.length > 1 ? 's' : '' }}
+                </button>
               </div>
-              <span class="msg-time" *ngIf="msg.timestamp">{{ msg.timestamp | date:'HH:mm' }}</span>
+              <!-- User -->
+              <div class="user-bubble" *ngIf="msg.role === 'user'">
+                {{ msg.content }}
+                <span class="time-u">{{ msg.timestamp | date:'HH:mm' }}</span>
+              </div>
             </div>
-            <div class="msg-text" [innerHTML]="formatContent(msg.content)"></div>
-            <div class="msg-actions" *ngIf="msg.sources && msg.sources.length > 0">
-              <button class="src-btn" (click)="showSourcePanel(msg.sources!)">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/>
-                </svg>
-                {{ msg.sources!.length }} source{{ msg.sources!.length > 1 ? 's' : '' }} cited
-              </button>
-            </div>
-          </div>
+          </ng-container>
 
-          <!-- User messages: right-aligned bubble -->
-          <div class="user-bubble" *ngIf="msg.role === 'user'">
-            <div class="bubble-text">{{ msg.content }}</div>
-            <span class="msg-time" *ngIf="msg.timestamp">{{ msg.timestamp | date:'HH:mm' }}</span>
+          <!-- Thinking -->
+          <div class="msg msg--ai" *ngIf="isLoading">
+            <div class="ai-block">
+              <div class="ai-head"><span class="ai-badge"><span class="star">✦</span> Assistant</span></div>
+              <div class="thinking"><span class="d"></span><span class="d"></span><span class="d"></span><em>Searching documentation…</em></div>
+            </div>
           </div>
         </div>
-      </ng-container>
+      </div>
 
-      <!-- Thinking -->
-      <div class="msg msg--ai fade-up" *ngIf="isLoading">
-        <div class="msg-inner">
-          <div class="msg-head">
-            <div class="ai-badge"><span class="ai-star">✦</span> Assistant</div>
+      <!-- Upload Panel (slides up above input) -->
+      <div class="upload-panel" *ngIf="showUpload">
+        <div class="up-header">
+          <h4>Upload Document</h4>
+          <button class="x-btn" (click)="toggleUpload()">✕</button>
+        </div>
+        <div class="up-body">
+          <input type="text" [(ngModel)]="uploadVendor" placeholder="Vendor (e.g. Cisco, Dell)" class="up-input" />
+          <div class="drop-zone" [class.dragging]="isDragging" (dragover)="onDragOver($event)" (dragleave)="onDragLeave($event)" (drop)="onDrop($event)" (click)="fileInput.click()">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <span>Drop PDF or HTML here, or <u>browse</u></span>
+            <input #fileInput type="file" accept=".pdf,.html,.htm" (change)="onFileSelected($event)" hidden />
           </div>
-          <div class="thinking">
-            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-            <span class="thinking-label">Searching docs &amp; generating answer…</span>
+          <div class="up-progress" *ngIf="isUploading"><div class="bar"><div class="fill"></div></div></div>
+          <p class="up-msg" *ngIf="uploadMsg" [class.ok]="uploadOk" [class.err]="!uploadOk && !isUploading">{{ uploadMsg }}</p>
+        </div>
+        <!-- Indexed docs mini table -->
+        <div class="up-docs" *ngIf="documents.length > 0">
+          <h5>Indexed Documents <span class="doc-count">{{ totalChunks }} chunks</span></h5>
+          <div class="doc-list">
+            <div class="doc-row" *ngFor="let doc of documents">
+              <span class="doc-vendor">{{ doc.vendor }}</span>
+              <span class="doc-name">{{ doc.document }}</span>
+              <span class="doc-chunks">{{ doc.chunk_count }}</span>
+              <button class="doc-del" (click)="deleteDocument(doc)" title="Remove">✕</button>
+            </div>
           </div>
+        </div>
+      </div>
+
+      <!-- Input Bar -->
+      <div class="input-bar">
+        <div class="input-row">
+          <button class="attach-btn" (click)="toggleUpload()" [class.active]="showUpload" title="Upload documents">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/>
+            </svg>
+          </button>
+          <textarea #messageInput [(ngModel)]="inputText" (keydown)="onKeydown($event)" (input)="onTextareaInput($event)" placeholder="Ask about your infrastructure docs..." rows="1" class="the-input"></textarea>
+          <button class="send-btn" (click)="sendMessage()" [disabled]="isLoading || !inputText.trim()" [class.ready]="inputText.trim() && !isLoading">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </button>
+        </div>
+        <div class="input-foot">
+          <button class="foot-btn" (click)="clearChat()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+            New chat
+          </button>
+          <span class="foot-hint">Hybrid RAG · Multi-turn · Enter to send</span>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Input Bar -->
-  <div class="input-bar">
-    <div class="input-row">
-      <textarea
-        #messageInput
-        [(ngModel)]="inputText"
-        (keydown)="onKeydown($event)"
-        (input)="onTextareaInput($event)"
-        placeholder="Ask about your infrastructure..."
-        rows="1"
-        class="the-input"
-      ></textarea>
-      <button class="btn-send" (click)="sendMessage()" [disabled]="isLoading || !inputText.trim()" [class.active]="inputText.trim() && !isLoading">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M5 12h14M12 5l7 7-7 7"/>
-        </svg>
-      </button>
-    </div>
-    <div class="input-meta">
-      <button class="meta-btn" (click)="clearChat()" title="New chat">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/>
-        </svg>
-        New chat
-      </button>
-      <span class="meta-text">Enter to send · Shift+Enter for new line</span>
-    </div>
-  </div>
-
-  <!-- Sources Drawer -->
+  <!-- ── Sources Drawer ── -->
   <div class="overlay" *ngIf="showSources" (click)="closeSources()"></div>
   <aside class="drawer" [class.open]="showSources">
-    <div class="drawer-top">
-      <h3>📄 Sources</h3>
-      <button class="icon-btn" (click)="closeSources()">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
-      </button>
+    <div class="drawer-head">
+      <h3>📄 References</h3>
+      <button class="x-btn" (click)="closeSources()">✕</button>
     </div>
-    <div class="drawer-list">
+    <div class="drawer-body">
       <div class="ref" *ngFor="let s of selectedSources; let i = index">
-        <div class="ref-num">{{ i + 1 }}</div>
-        <div class="ref-body">
-          <div class="ref-vendor">{{ s.vendor }}</div>
-          <div class="ref-doc">{{ s.document }}</div>
-          <div class="ref-meta">
-            <span *ngIf="s.page">Page {{ s.page }}</span>
-            <span *ngIf="s.chunk !== null && s.chunk !== undefined">· Chunk {{ s.chunk }}</span>
-          </div>
+        <span class="ref-n">{{ i + 1 }}</span>
+        <div class="ref-info">
+          <span class="ref-v">{{ s.vendor }}</span>
+          <span class="ref-d">{{ s.document }}</span>
+          <span class="ref-m"><span *ngIf="s.page">Page {{ s.page }}</span> <span *ngIf="s.chunk !== null && s.chunk !== undefined">· Chunk {{ s.chunk }}</span></span>
         </div>
       </div>
     </div>
