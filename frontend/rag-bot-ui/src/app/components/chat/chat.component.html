@@ -1,144 +1,145 @@
 <div class="chat-wrapper">
-  <!-- Header -->
-  <header class="chat-header">
-    <div class="header-left">
-      <div class="header-status">
-        <span class="status-dot"></span>
-        <span class="status-text">Online</span>
-      </div>
-    </div>
-    <div class="header-center">
-      <h1 class="header-title">Infra AI Assistant</h1>
-      <p class="header-subtitle">Enterprise IT Documentation Intelligence</p>
-    </div>
-    <div class="header-right">
-      <button class="icon-btn" (click)="clearChat()" title="New conversation">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-        </svg>
-      </button>
-    </div>
-  </header>
-
   <!-- Messages -->
   <div class="messages-area" #messageContainer>
     <div class="messages-inner">
-      <!-- Empty state -->
-      <div class="empty-state" *ngIf="messages.length <= 1 && !isLoading">
-        <div class="empty-grid">
-          <div class="suggestion-card" (click)="inputText = 'What is FortiGate and its key features?'; sendMessage()">
-            <div class="suggestion-icon">🔥</div>
-            <div class="suggestion-text">What is FortiGate and its key features?</div>
-          </div>
-          <div class="suggestion-card" (click)="inputText = 'How do I configure VLANs on a Cisco switch?'; sendMessage()">
-            <div class="suggestion-icon">🔧</div>
-            <div class="suggestion-text">How do I configure VLANs on a Cisco switch?</div>
-          </div>
-          <div class="suggestion-card" (click)="inputText = 'Compare Dell PowerEdge server models'; sendMessage()">
-            <div class="suggestion-icon">📊</div>
-            <div class="suggestion-text">Compare Dell PowerEdge server models</div>
-          </div>
-          <div class="suggestion-card" (click)="inputText = 'Best practices for firewall configuration'; sendMessage()">
-            <div class="suggestion-icon">🛡️</div>
-            <div class="suggestion-text">Best practices for firewall configuration</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Message bubbles -->
-      <div
-        *ngFor="let msg of messages; let i = index"
-        class="message-row"
-        [class.user-row]="msg.role === 'user'"
-        [class.assistant-row]="msg.role === 'assistant'"
-        [class.fade-up]="true"
-      >
-        <div class="avatar" [class.user-avatar]="msg.role === 'user'" [class.ai-avatar]="msg.role === 'assistant'">
-          <svg *ngIf="msg.role === 'user'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
+      <!-- Hero Empty State -->
+      <div class="hero" *ngIf="messages.length <= 1 && !isLoading">
+        <div class="hero-logo">
+          <svg width="44" height="44" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2L2 7l10 5 10-5-10-5z" fill="url(#g1)"/>
+            <path d="M2 17l10 5 10-5" stroke="url(#g2)" stroke-width="2" fill="none"/>
+            <path d="M2 12l10 5 10-5" stroke="url(#g2)" stroke-width="2" fill="none" opacity="0.5"/>
+            <defs>
+              <linearGradient id="g1" x1="2" y1="2" x2="22" y2="12">
+                <stop stop-color="#3B82F6"/><stop offset="1" stop-color="#8B5CF6"/>
+              </linearGradient>
+              <linearGradient id="g2" x1="2" y1="12" x2="22" y2="22">
+                <stop stop-color="#3B82F6"/><stop offset="1" stop-color="#8B5CF6"/>
+              </linearGradient>
+            </defs>
           </svg>
-          <span *ngIf="msg.role === 'assistant'" class="ai-icon">✦</span>
         </div>
+        <h1 class="hero-title">Infra AI Assistant</h1>
+        <p class="hero-desc">Ask anything about your IT infrastructure documentation.<br>Powered by hybrid RAG search with multi-turn conversations.</p>
 
-        <div class="message-body" [class.user-body]="msg.role === 'user'" [class.ai-body]="msg.role === 'assistant'">
-          <div class="message-label" *ngIf="msg.role === 'assistant'">Assistant</div>
-          <div class="message-content" [innerHTML]="formatContent(msg.content)"></div>
-
-          <div class="message-footer">
-            <button class="sources-btn" *ngIf="msg.sources && msg.sources.length > 0" (click)="showSourcePanel(msg.sources!)">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/>
-              </svg>
-              {{ msg.sources!.length }} source{{ msg.sources!.length > 1 ? 's' : '' }}
-            </button>
-            <span class="message-time" *ngIf="msg.timestamp">{{ msg.timestamp | date:'HH:mm' }}</span>
-          </div>
+        <div class="suggestions">
+          <button class="chip" (click)="inputText = 'What is FortiGate and its key features?'; sendMessage()">
+            <span class="chip-icon">🔥</span> What is FortiGate?
+          </button>
+          <button class="chip" (click)="inputText = 'How to configure VLANs on a Cisco switch?'; sendMessage()">
+            <span class="chip-icon">🔧</span> Configure VLANs
+          </button>
+          <button class="chip" (click)="inputText = 'Dell PowerEdge server specifications'; sendMessage()">
+            <span class="chip-icon">📊</span> PowerEdge specs
+          </button>
+          <button class="chip" (click)="inputText = 'Firewall security best practices'; sendMessage()">
+            <span class="chip-icon">🛡️</span> Firewall best practices
+          </button>
         </div>
       </div>
 
-      <!-- Typing -->
-      <div class="message-row assistant-row fade-up" *ngIf="isLoading">
-        <div class="avatar ai-avatar"><span class="ai-icon">✦</span></div>
-        <div class="message-body ai-body">
-          <div class="message-label">Assistant</div>
+      <!-- Messages -->
+      <ng-container *ngFor="let msg of messages; let i = index">
+        <div
+          class="msg"
+          [class.msg--user]="msg.role === 'user'"
+          [class.msg--ai]="msg.role === 'assistant'"
+          [class.fade-up]="true"
+        >
+          <!-- AI messages: full width block -->
+          <div class="msg-inner" *ngIf="msg.role === 'assistant'">
+            <div class="msg-head">
+              <div class="ai-badge">
+                <span class="ai-star">✦</span> Assistant
+              </div>
+              <span class="msg-time" *ngIf="msg.timestamp">{{ msg.timestamp | date:'HH:mm' }}</span>
+            </div>
+            <div class="msg-text" [innerHTML]="formatContent(msg.content)"></div>
+            <div class="msg-actions" *ngIf="msg.sources && msg.sources.length > 0">
+              <button class="src-btn" (click)="showSourcePanel(msg.sources!)">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/>
+                </svg>
+                {{ msg.sources!.length }} source{{ msg.sources!.length > 1 ? 's' : '' }} cited
+              </button>
+            </div>
+          </div>
+
+          <!-- User messages: right-aligned bubble -->
+          <div class="user-bubble" *ngIf="msg.role === 'user'">
+            <div class="bubble-text">{{ msg.content }}</div>
+            <span class="msg-time" *ngIf="msg.timestamp">{{ msg.timestamp | date:'HH:mm' }}</span>
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- Thinking -->
+      <div class="msg msg--ai fade-up" *ngIf="isLoading">
+        <div class="msg-inner">
+          <div class="msg-head">
+            <div class="ai-badge"><span class="ai-star">✦</span> Assistant</div>
+          </div>
           <div class="thinking">
-            <div class="thinking-dots"><span></span><span></span><span></span></div>
-            <span class="thinking-text">Searching documentation...</span>
+            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+            <span class="thinking-label">Searching docs &amp; generating answer…</span>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Input -->
-  <div class="input-area">
-    <div class="input-container">
+  <!-- Input Bar -->
+  <div class="input-bar">
+    <div class="input-row">
       <textarea
         #messageInput
         [(ngModel)]="inputText"
         (keydown)="onKeydown($event)"
         (input)="onTextareaInput($event)"
-        placeholder="Ask anything about your infrastructure docs..."
+        placeholder="Ask about your infrastructure..."
         rows="1"
-        class="chat-input"
+        class="the-input"
       ></textarea>
-      <button
-        class="send-btn"
-        (click)="sendMessage()"
-        [disabled]="isLoading || !inputText.trim()"
-        [class.ready]="inputText.trim() && !isLoading"
-      >
+      <button class="btn-send" (click)="sendMessage()" [disabled]="isLoading || !inputText.trim()" [class.active]="inputText.trim() && !isLoading">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/>
+          <path d="M5 12h14M12 5l7 7-7 7"/>
         </svg>
       </button>
     </div>
-    <p class="input-footer">Powered by RAG · Hybrid Search · Multi-turn Conversations</p>
+    <div class="input-meta">
+      <button class="meta-btn" (click)="clearChat()" title="New chat">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/>
+        </svg>
+        New chat
+      </button>
+      <span class="meta-text">Enter to send · Shift+Enter for new line</span>
+    </div>
   </div>
 
   <!-- Sources Drawer -->
-  <div class="drawer-overlay" *ngIf="showSources" (click)="closeSources()"></div>
-  <div class="drawer" [class.open]="showSources">
-    <div class="drawer-header">
-      <h3>References</h3>
+  <div class="overlay" *ngIf="showSources" (click)="closeSources()"></div>
+  <aside class="drawer" [class.open]="showSources">
+    <div class="drawer-top">
+      <h3>📄 Sources</h3>
       <button class="icon-btn" (click)="closeSources()">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
         </svg>
       </button>
     </div>
-    <div class="drawer-body">
-      <div class="ref-card" *ngFor="let source of selectedSources; let i = index">
-        <div class="ref-badge">{{ i + 1 }}</div>
-        <div class="ref-details">
-          <span class="ref-vendor">{{ source.vendor }}</span>
-          <span class="ref-doc">{{ source.document }}</span>
+    <div class="drawer-list">
+      <div class="ref" *ngFor="let s of selectedSources; let i = index">
+        <div class="ref-num">{{ i + 1 }}</div>
+        <div class="ref-body">
+          <div class="ref-vendor">{{ s.vendor }}</div>
+          <div class="ref-doc">{{ s.document }}</div>
           <div class="ref-meta">
-            <span *ngIf="source.page">Page {{ source.page }}</span>
-            <span *ngIf="source.chunk !== null && source.chunk !== undefined">Chunk {{ source.chunk }}</span>
+            <span *ngIf="s.page">Page {{ s.page }}</span>
+            <span *ngIf="s.chunk !== null && s.chunk !== undefined">· Chunk {{ s.chunk }}</span>
           </div>
         </div>
       </div>
     </div>
-  </div>
+  </aside>
 </div>
