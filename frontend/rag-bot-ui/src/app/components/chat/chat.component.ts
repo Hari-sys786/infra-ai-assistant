@@ -6,7 +6,7 @@ interface UploadItem {
   file: File;
   name: string;
   size: string;
-  status: 'pending' | 'uploading' | 'done' | 'error';
+  status: 'uploading' | 'done' | 'error';
   msg: string;
   chunks: number;
 }
@@ -19,6 +19,7 @@ interface UploadItem {
 export class ChatComponent implements OnInit, AfterViewChecked {
   @ViewChild('messageContainer') messageContainer!: ElementRef;
   @ViewChild('messageInput') messageInput!: ElementRef;
+  @ViewChild('fileInput') fileInput!: ElementRef;
 
   messages: MessageItem[] = [];
   inputText = '';
@@ -36,9 +37,8 @@ export class ChatComponent implements OnInit, AfterViewChecked {
   documents: DocumentInfo[] = [];
 
   // Upload
-  showUpload = false;
   uploads: UploadItem[] = [];
-  isDragging = false;
+  showDocs = false;
 
   constructor(private api: ApiService) {}
 
@@ -106,20 +106,10 @@ export class ChatComponent implements OnInit, AfterViewChecked {
     this.sessionId = undefined;
   }
 
-  // ── Upload ──
+  // ── Upload — paperclip opens file picker directly ──
 
-  toggleUpload(): void {
-    this.showUpload = !this.showUpload;
-  }
-
-  onDragOver(e: DragEvent): void { e.preventDefault(); e.stopPropagation(); this.isDragging = true; }
-  onDragLeave(e: DragEvent): void { e.preventDefault(); this.isDragging = false; }
-
-  onDrop(e: DragEvent): void {
-    e.preventDefault();
-    this.isDragging = false;
-    const files = e.dataTransfer?.files;
-    if (files) this.addFiles(files);
+  openFilePicker(): void {
+    this.fileInput.nativeElement.click();
   }
 
   onFileSelected(e: Event): void {
@@ -137,7 +127,7 @@ export class ChatComponent implements OnInit, AfterViewChecked {
       if (!['pdf', 'html', 'htm'].includes(ext || '')) {
         this.uploads.unshift({
           file, name: file.name, size: this.fmtSize(file.size),
-          status: 'error', msg: 'Unsupported format', chunks: 0,
+          status: 'error', msg: 'Unsupported format — use PDF or HTML', chunks: 0,
         });
         continue;
       }
@@ -157,6 +147,11 @@ export class ChatComponent implements OnInit, AfterViewChecked {
         item.chunks = res.chunks_added;
         item.msg = `${res.chunks_added} chunks indexed`;
         this.loadStats();
+        // Auto-dismiss after 5s
+        setTimeout(() => {
+          const idx = this.uploads.indexOf(item);
+          if (idx !== -1) this.uploads.splice(idx, 1);
+        }, 5000);
       },
       error: (err) => {
         item.status = 'error';
@@ -167,6 +162,10 @@ export class ChatComponent implements OnInit, AfterViewChecked {
 
   removeUploadItem(i: number): void {
     this.uploads.splice(i, 1);
+  }
+
+  toggleDocs(): void {
+    this.showDocs = !this.showDocs;
   }
 
   deleteDocument(doc: DocumentInfo): void {
